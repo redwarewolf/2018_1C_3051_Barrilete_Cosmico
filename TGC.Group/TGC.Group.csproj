@@ -74,6 +74,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ElipsoidCollision\BoundingBoxCollider.cs" />
+    <Compile Include="ElipsoidCollision\Collider.cs" />
+    <Compile Include="ElipsoidCollision\ElipsoidCollisionManager.cs" />
+    <Compile Include="ElipsoidCollision\TriangleMeshCollider.cs" />
+    <Compile Include="Model\Direction Vectors\DirectionVector.cs" />
+    <Compile Include="Model\Direction Vectors\DownDirection.cs" />
+    <Compile Include="Model\Direction Vectors\DownLeftDirection.cs" />
+    <Compile Include="Model\Direction Vectors\DownRightDirection.cs" />
+    <Compile Include="Model\Direction Vectors\LeftDirection.cs" />
+    <Compile Include="Model\Direction Vectors\RightDirection.cs" />
+    <Compile Include="Model\Direction Vectors\UpDirection.cs" />
+    <Compile Include="Model\Direction Vectors\UpLeftDirection.cs" />
+    <Compile Include="Model\Direction Vectors\UpRightDirection.cs" />
     <Compile Include="SphereCollisionUtils\BoundingBoxCollider.cs" />
     <Compile Include="SphereCollisionUtils\Collider.cs" />
     <Compile Include="SphereCollisionUtils\SphereCollisionManager.cs" />
