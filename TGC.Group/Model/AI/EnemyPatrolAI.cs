@@ -8,5 +8,6 @@ namespace TGC.Group.Model.AI
 {
     class EnemyPatrolAI : PatrolObject
     {
+
     }
 }
