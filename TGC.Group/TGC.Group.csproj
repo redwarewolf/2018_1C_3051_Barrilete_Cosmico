@@ -78,6 +78,9 @@
     <Compile Include="ElipsoidCollision\Collider.cs" />
     <Compile Include="ElipsoidCollision\ElipsoidCollisionManager.cs" />
     <Compile Include="ElipsoidCollision\TriangleMeshCollider.cs" />
+    <Compile Include="Model\AI\EnemyPatrolAI.cs" />
+    <Compile Include="Model\AI\PatrolObject.cs" />
+    <Compile Include="Model\AI\Platform.cs" />
     <Compile Include="Model\Direction Vectors\DirectionVector.cs" />
     <Compile Include="Model\Direction Vectors\DownDirection.cs" />
     <Compile Include="Model\Direction Vectors\DownLeftDirection.cs" />

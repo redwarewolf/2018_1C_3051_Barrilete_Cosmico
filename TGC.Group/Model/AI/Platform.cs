@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace TGC.Group.Model.AI
 {
-    class Platform
+    class Platform : PatrolObject
     {
+        public void Update()
+        {
+            PatrolLogic();
+        }
     }
+
 }

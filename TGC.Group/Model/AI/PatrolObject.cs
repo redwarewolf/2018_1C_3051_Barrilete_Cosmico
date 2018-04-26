@@ -7,24 +7,38 @@ using TGC.Core.Mathematica;
 
 namespace TGC.Group.Model.AI
 {
-    class PatrolObject
+    abstract class PatrolObject
     {
         private List<TGCVector3> positions;
-        private int currentPosition = 0;
+        private int currentPoint = 0;
 
-        public void update()
+        public void Update()
         {
 
         }
 
-        void patrolLogic()
+        public void PatrolLogic()
+        {
+            if (TGCVector3.Equals(CurrentPosition(), positions[currentPoint]))
+            {
+                currentPoint++;
+            }
+            if( currentPoint == positions.Count)
+            {
+                currentPoint = 0;
+                positions.Reverse();
+            }
+            MoveTo(positions[currentPoint]);
+        }
+
+        void MoveTo(TGCVector3 direction)
         {
 
         }
 
-        void moveTo()
+        private TGCVector3 CurrentPosition()
         {
-
+            return new TGCVector3();
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TGC.Group.Model.AI
 {
-    class EnemyPatrolAI
+    class EnemyPatrolAI : PatrolObject
     {
     }
 }
