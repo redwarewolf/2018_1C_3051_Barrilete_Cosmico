@@ -13,6 +13,11 @@ namespace TGC.Group.Model.AI
         private List<TGCVector3> positions;
         private int currentPoint = 0;
 
+        public PatrolObject(List<TGCVector3> newPositions)
+        {
+            positions = newPositions;
+        }
+
         public void Update()
         {
 
