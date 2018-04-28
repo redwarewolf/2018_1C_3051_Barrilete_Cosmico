@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TGC.Core.Mathematica;
+using TGC.Core.SceneLoader;
 
 namespace TGC.Group.Model.AI
 {
-    abstract class PatrolObject
+    abstract class PatrolObject : TgcMesh
     {
         private List<TGCVector3> positions;
         private int currentPoint = 0;
@@ -19,7 +20,7 @@ namespace TGC.Group.Model.AI
 
         public void PatrolLogic()
         {
-            if (TGCVector3.Equals(CurrentPosition(), positions[currentPoint]))
+            if (TGCVector3.Equals(Position, positions[currentPoint]))
             {
                 currentPoint++;
             }
@@ -28,17 +29,7 @@ namespace TGC.Group.Model.AI
                 currentPoint = 0;
                 positions.Reverse();
             }
-            MoveTo(positions[currentPoint]);
-        }
-
-        void MoveTo(TGCVector3 direction)
-        {
-
-        }
-
-        private TGCVector3 CurrentPosition()
-        {
-            return new TGCVector3();
+            Move(positions[currentPoint]);
         }
     }
 }
