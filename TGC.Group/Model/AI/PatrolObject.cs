@@ -36,7 +36,7 @@ namespace TGC.Group.Model.AI
                 currentPoint = 0;
                 positions.Reverse();
             }
-            objectMesh.Move(positions[currentPoint]);
+            objectMesh.Move(TGCVector3.Normalize(positions[currentPoint]));
         }
     }
 }
