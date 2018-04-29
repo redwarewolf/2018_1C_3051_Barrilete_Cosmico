@@ -18,5 +18,7 @@ namespace TGC.Group.Model.AI
             positions = newPositions;
             objectMesh = theObjectsMesh;
         }
+
+
     }
 }

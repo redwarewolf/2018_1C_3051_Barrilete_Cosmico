@@ -31,7 +31,7 @@ namespace TGC.Group.Model.AI
             {
                 currentPoint++;
             }
-            if( currentPoint == positions.Count)
+            if( currentPoint == positions.Count && TGCVector3.Equals(objectMesh.Position, positions[currentPoint]))
             {
                 currentPoint = 0;
                 positions.Reverse();
