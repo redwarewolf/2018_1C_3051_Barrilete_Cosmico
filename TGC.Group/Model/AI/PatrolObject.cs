@@ -8,14 +8,16 @@ using TGC.Core.SceneLoader;
 
 namespace TGC.Group.Model.AI
 {
-    abstract class PatrolObject : TgcMesh
+    abstract class PatrolObject
     {
+        private TgcMesh objectMesh;
         private List<TGCVector3> positions;
         private int currentPoint = 0;
 
-        public PatrolObject(List<TGCVector3> newPositions)
+        public PatrolObject(List<TGCVector3> newPositions, TgcMesh theObjectsMesh)
         {
             positions = newPositions;
+            objectMesh = theObjectsMesh;
         }
 
         public void Update()
@@ -25,7 +27,7 @@ namespace TGC.Group.Model.AI
 
         public void PatrolLogic()
         {
-            if (TGCVector3.Equals(Position, positions[currentPoint]))
+            if (TGCVector3.Equals(objectMesh.Position, positions[currentPoint]))
             {
                 currentPoint++;
             }
@@ -34,7 +36,7 @@ namespace TGC.Group.Model.AI
                 currentPoint = 0;
                 positions.Reverse();
             }
-            Move(positions[currentPoint]);
+            objectMesh.Move(positions[currentPoint]);
         }
     }
 }
