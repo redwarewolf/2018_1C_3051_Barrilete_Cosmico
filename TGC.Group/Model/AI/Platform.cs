@@ -12,7 +12,6 @@ namespace TGC.Group.Model.AI
     {
         private TgcMesh objectMesh;
         private List<TGCVector3> positions;
-        private int currentPosition = 0;
 
         public Platform(List<TGCVector3> newPositions, TgcMesh theObjectsMesh) : base(newPositions, theObjectsMesh)
         {
