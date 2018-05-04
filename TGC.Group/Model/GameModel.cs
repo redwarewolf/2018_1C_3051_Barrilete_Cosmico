@@ -45,7 +45,7 @@ namespace TGC.Group.Model
 
         private TGCVector3 velocidad = TGCVector3.Empty;
         private TGCVector3 aceleracion = TGCVector3.Empty;
-        private float Ypiso = 25f;
+        private float Ypiso = 20f;
         
 
         //Define direccion del mesh del personaje dependiendo el movimiento
@@ -63,12 +63,13 @@ namespace TGC.Group.Model
         private TGCVector3 movimientoRealCaja = TGCVector3.Empty;
         private TgcBoundingSphere esferaCaja;
 
+        private List<Plataforma> plataformas;
+
         private bool boundingBoxActivate = false;
 
         private float jumping;
         private bool moving;
 
-        private List<Platform> plataformas = new List<Platform>();
 
        
         public override void Init()
@@ -94,7 +95,7 @@ namespace TGC.Group.Model
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
             //Posicion inicial 2
-            personaje.Position = new TGCVector3(0,Ypiso + 20, -6000);
+            personaje.Position = new TGCVector3(-4000,Ypiso, -7800);
             //No es recomendado utilizar autotransform en casos mas complicados, se pierde el control.
             personaje.AutoTransform = true;
             
@@ -122,9 +123,9 @@ namespace TGC.Group.Model
 
             ColisionadorEsferico = new SphereCollisionManager();
             ColisionadorEsferico.GravityEnabled = true;
-         
-            
 
+
+            plataformas = escenario.Plataformas();
 
             //Suelen utilizarse objetos que manejan el comportamiento de la camara.
             //Lo que en realidad necesitamos gráficamente es una matriz de View.
@@ -136,8 +137,8 @@ namespace TGC.Group.Model
             var lookAt = TGCVector3.Empty;
             //Configuro donde esta la posicion de la camara y hacia donde mira.
             Camara = camaraInterna;
-
-            obtenerPlataformas();
+            
+            //obtenerPlataformas();
            
             //Internamente el framework construye la matriz de view con estos dos vectores.
             //Luego en nuestro juego tendremos que crear una cámara que cambie la matriz de view con variables como movimientos o animaciones de escenas.
@@ -256,18 +257,17 @@ namespace TGC.Group.Model
                 if (!interaccion && movimientoRealCaja.Y < 0) objeto.Move(movimientoRealCaja);
             }
 
-            foreach(Platform plataforma in plataformas){
-                plataforma.Update();
-            }
 
-                   
+            foreach (Plataforma plataforma in plataformas) plataforma.Update();
+
+            
             personaje.Move(movimientoRealPersonaje);
 
         }
 
         public TgcMesh obtenerColisionCajaPersonaje()
         {
-            return escenario.Cajas().Find(caja => TgcCollisionUtils.testAABBAABB(caja.BoundingBox, personaje.BoundingBox));
+            return escenario.CajasMesh().Find(caja => TgcCollisionUtils.testAABBAABB(caja.BoundingBox, personaje.BoundingBox));
         }
 
         public bool testColisionObjetoPersonaje(TgcMesh objetoColisionable)
@@ -370,17 +370,18 @@ namespace TGC.Group.Model
             
         }
 
-        private void obtenerPlataformas()
+       /* private void obtenerPlataformas()
         {
             List<TGCVector3> somePositions = new List<TGCVector3>();
             somePositions.Add(new TGCVector3(-2900f, 500f, -6990f));
             somePositions.Add(new TGCVector3(-5900f, 500f, -6990f));
             somePositions.Add(new TGCVector3(-5900f, 500f, -10000f));
-            List<TgcMesh> meshDePlataformas = escenario.Plataformas();
+            List<TgcMesh> meshDePlataformas = escenario.PlataformasMesh();
             for(int i = 0; i < plataformas.Count; i++)
             {
-                plataformas.Add(new Platform(somePositions, meshDePlataformas[i]));
+                plataformas.Add(new Plataforma(somePositions, meshDePlataformas[i]));
             }
         }
+        */
     }
 }
