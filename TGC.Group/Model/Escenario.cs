@@ -38,6 +38,10 @@ namespace TGC.Group.Model
         {
             return PisosMesh().Exists(piso => TgcCollisionUtils.testAABBAABB(piso.BoundingBox, mesh.BoundingBox));
         }
+        public bool colisionaConPared(TgcMesh mesh)
+        {
+            return ParedesMesh().Exists(pared => TgcCollisionUtils.testAABBAABB(pared.BoundingBox, mesh.BoundingBox));
+        }
 
         public List<Plataforma> Plataformas()
         {
@@ -45,7 +49,12 @@ namespace TGC.Group.Model
 
             foreach(TgcMesh plataformaMesh in PlataformasMesh())
             {
-                Plataforma plataforma = new Plataforma(plataformaMesh,this);
+                Plataforma plataforma;
+
+                if (plataformaMesh.Name == "PlataformaY") plataforma = new PlataformaY(plataformaMesh, this);
+                else if (plataformaMesh.Name == "PlataformaX") plataforma = new PlataformaX(plataformaMesh, this);
+                else plataforma = new Plataforma(plataformaMesh, this);
+
                 plataformas.Add(plataforma);
             }
 

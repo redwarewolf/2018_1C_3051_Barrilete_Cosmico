@@ -81,6 +81,7 @@
     <Compile Include="Model\AI\EnemyPatrolAI.cs" />
     <Compile Include="Model\AI\PatrolObject.cs" />
     <Compile Include="Model\AI\Plataforma.cs" />
+    <Compile Include="Model\AI\PlataformaX.cs" />
     <Compile Include="Model\Direction Vectors\DirectionVector.cs" />
     <Compile Include="Model\Direction Vectors\DownDirection.cs" />
     <Compile Include="Model\Direction Vectors\DownLeftDirection.cs" />
@@ -193,6 +194,7 @@
   <ItemGroup>
     <Content Include="Media\cajaMadera4.jpg" />
     <Content Include="Media\LogoTGC-TgcScene.xml" />
+    <Compile Include="Model\AI\PlataformaY.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

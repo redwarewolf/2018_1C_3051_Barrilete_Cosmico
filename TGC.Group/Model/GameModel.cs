@@ -95,7 +95,7 @@ namespace TGC.Group.Model
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
             //Posicion inicial 2
-            personaje.Position = new TGCVector3(-4000,Ypiso, -7800);
+            personaje.Position = new TGCVector3(-3100,Ypiso, -10200);
             //No es recomendado utilizar autotransform en casos mas complicados, se pierde el control.
             personaje.AutoTransform = true;
             
