@@ -9,7 +9,7 @@ using TGC.Group.VectorMovement;
 
 namespace TGC.Group.Model
 {
-    class Personaje
+    class DireccionPersonaje
     {
 
         private Calculos calculo = new Calculos();
@@ -24,9 +24,7 @@ namespace TGC.Group.Model
         private DirectionAngle upRightDir = new UpRightDirection();
         private DirectionAngle upLeftDir = new UpLeftDirection();
         private float anguloMovido;
-
-
-       
+        
 
         //Para 1 tecla
         private bool validateMovement(Key i, Key valida, DirectionAngle validationAngle)

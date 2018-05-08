@@ -53,6 +53,7 @@ namespace TGC.Group.Model
 
                 if (plataformaMesh.Name == "PlataformaY") plataforma = new PlataformaY(plataformaMesh, this);
                 else if (plataformaMesh.Name == "PlataformaX") plataforma = new PlataformaX(plataformaMesh, this);
+                else if (plataformaMesh.Name == "PlataformaRotante") plataforma = new PlataformaRotante(plataformaMesh, this);
                 else plataforma = new Plataforma(plataformaMesh, this);
 
                 plataformas.Add(plataforma);

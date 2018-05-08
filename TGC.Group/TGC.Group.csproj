@@ -81,6 +81,7 @@
     <Compile Include="Model\AI\EnemyPatrolAI.cs" />
     <Compile Include="Model\AI\PatrolObject.cs" />
     <Compile Include="Model\AI\Plataforma.cs" />
+    <Compile Include="Model\AI\PlataformaRotante.cs" />
     <Compile Include="Model\AI\PlataformaX.cs" />
     <Compile Include="Model\Direction Vectors\DirectionVector.cs" />
     <Compile Include="Model\Direction Vectors\DownDirection.cs" />
@@ -116,7 +117,7 @@
     <Compile Include="Model\Calculos.cs" />
     <Compile Include="Model\Directorio.cs" />
     <Compile Include="Model\Escenario.cs" />
-    <Compile Include="Model\Personaje.cs" />
+    <Compile Include="Model\DireccionPersonaje.cs" />
     <Compile Include="Model\GameModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

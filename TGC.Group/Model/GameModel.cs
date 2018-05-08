@@ -49,7 +49,7 @@ namespace TGC.Group.Model
         
 
         //Define direccion del mesh del personaje dependiendo el movimiento
-        private Personaje dirPers = new Personaje();
+        private DireccionPersonaje direccionPersonaje = new DireccionPersonaje();
         private Escenario escenario;
         private TgcMesh objeto;
 
@@ -97,7 +97,7 @@ namespace TGC.Group.Model
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
             //Posicion inicial 2
-            personaje.Position = new TGCVector3(-3100,Ypiso, -10200);
+            personaje.Position = new TGCVector3(-3630,Ypiso, -7600);
             //No es recomendado utilizar autotransform en casos mas complicados, se pierde el control.
             personaje.AutoTransform = true;
             
@@ -178,7 +178,8 @@ namespace TGC.Group.Model
                 boundingBoxActivate = !boundingBoxActivate;
             }
 
-            RotarMesh();
+
+            RotarPersonaje();
 
             if (Input.keyDown(Key.R)) interaccion = true;
             else interaccion = false;
@@ -292,7 +293,7 @@ namespace TGC.Group.Model
             return escenario.ObjetosColisionables().Exists(objeto => objeto != box && TgcCollisionUtils.testAABBAABB(box.BoundingBox, objeto.BoundingBox));
         }
 
-        public void RotarMesh()
+        public void RotarPersonaje()
         {
             //Adelante
             if (Input.keyDown(Key.W)) RotateMesh(Key.W);
@@ -315,12 +316,12 @@ namespace TGC.Group.Model
          public void RotateMesh(Key input)
         {
             moving = true;
-            personaje.RotateY(dirPers.RotationAngle(input));
+            personaje.RotateY(direccionPersonaje.RotationAngle(input));
         }
         public void RotateMesh(Key i1, Key i2)
         {
             moving = true;
-            personaje.RotateY(dirPers.RotationAngle(i1,i2));
+            personaje.RotateY(direccionPersonaje.RotationAngle(i1,i2));
         }
 
        
