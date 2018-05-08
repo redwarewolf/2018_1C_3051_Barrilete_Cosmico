@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
 using TGC.Core.Collision;
-
+using TGC.Core.BoundingVolumes;
 
 namespace TGC.Group.Model.AI
 {
@@ -23,7 +23,23 @@ namespace TGC.Group.Model.AI
             this.plataformaMesh = plataformaMesh;
             this.posicionInicial = plataformaMesh.Position;
             this.escenario = escenario;
-            vectorMovimiento = new TGCVector3(-1, 0, 0);
+            vectorMovimiento = new TGCVector3(-20, 0, 0);
+        }
+
+        public override bool colisionaConPersonaje(TgcBoundingSphere esferaPersonaje)
+        {
+            bool colision = false;
+            TgcBoundingSphere esferaAux = esferaPersonaje;
+            TGCVector3 centroOriginal = esferaAux.Center;
+
+            TGCVector3 centroTestColision = centroOriginal;
+            centroTestColision.Y -= 50f;
+            esferaAux.setCenter(centroTestColision);
+
+            colision= base.colisionaConPersonaje(esferaAux);
+
+            esferaAux.setCenter(centroOriginal);
+            return colision;
         }
 
         public override void Update()

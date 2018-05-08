@@ -110,8 +110,8 @@ namespace TGC.Group.Model
                 TgcTexture.createTexture(D3DDevice.Instance.Device, directorio.RobotTextura)
             });
 
-
-            esferaPersonaje = new TgcBoundingSphere(personaje.BoundingBox.calculateBoxCenter() - new TGCVector3(5f,50f,0f), personaje.BoundingBox.calculateBoxRadius()*0.4f);
+            float radioEsfera = personaje.BoundingBox.calculateBoxRadius() * 0.4f;
+            esferaPersonaje = new TgcBoundingSphere(personaje.BoundingBox.calculateBoxCenter() - new TGCVector3(5f,radioEsfera,0f), radioEsfera);
             scaleBoundingVector = new TGCVector3(1.5f, 1f, 1.2f);
 
 
@@ -244,10 +244,6 @@ namespace TGC.Group.Model
             var box = obtenerColisionCajaPersonaje();
             if (box != null && box != objeto) objeto = box;
 
-            
-            
-            
-            
             //Mover personaje con detección de colisiones, sliding y gravedad
             movimientoRealPersonaje = ColisionadorEsferico.moveCharacter(esferaPersonaje, movimientoRealizado, escenario.MeshesColisionablesBB());
 
@@ -266,18 +262,18 @@ namespace TGC.Group.Model
 
             foreach (Plataforma plataforma in plataformas) plataforma.Update();
 
-            Plataforma plataformaColisionante = plataformas.Find(plataforma => plataforma.colisionaCon(esferaPersonaje));
+            Plataforma plataformaColisionante = plataformas.Find(plataforma => plataforma.colisionaConPersonaje(esferaPersonaje));
             if (plataformaColisionante != null) colisionPlataforma = true;
             else colisionPlataforma = false;
+
             if (colisionPlataforma) movimientoPorPlataforma = plataformaColisionante.VectorMovimiento();
             else movimientoPorPlataforma = new TGCVector3(0, 0, 0);
 
-
             personaje.Move(movimientoRealPersonaje + movimientoPorPlataforma);
             
-                TGCVector3 movimientoCentroEsfera = movimientoPorPlataforma;
-                esferaPersonaje.moveCenter(movimientoCentroEsfera);
-            
+            //Actualizo el centro de la esfera por movimientos externos
+            TGCVector3 movimientoCentroEsfera = movimientoPorPlataforma;
+            esferaPersonaje.moveCenter(movimientoCentroEsfera);
         }
 
         public TgcMesh obtenerColisionCajaPersonaje()

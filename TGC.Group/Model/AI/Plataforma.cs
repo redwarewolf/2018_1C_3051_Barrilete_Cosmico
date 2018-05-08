@@ -24,7 +24,7 @@ namespace TGC.Group.Model.AI
             
         }
 
-        public bool colisionaCon(TgcBoundingSphere esferaPersonaje)
+        public virtual bool colisionaConPersonaje(TgcBoundingSphere esferaPersonaje)
         {
             
             return TgcCollisionUtils.testSphereAABB(esferaPersonaje, plataformaMesh.BoundingBox);
