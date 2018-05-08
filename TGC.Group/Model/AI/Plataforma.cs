@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
 using TGC.Core.Collision;
+using TGC.Core.SkeletalAnimation;
+using TGC.Core.BoundingVolumes;
 
 namespace TGC.Group.Model.AI
 {
@@ -13,11 +15,24 @@ namespace TGC.Group.Model.AI
     {
         private TgcMesh plataformaMesh;
         private Escenario escenario;
+        public TGCVector3 vectorMovimiento = new TGCVector3(0,0,0);
 
         public Plataforma(TgcMesh plataformaMesh, Escenario escenario)
         {
             this.plataformaMesh = plataformaMesh;
             this.escenario = escenario;
+            
+        }
+
+        public bool colisionaCon(TgcBoundingSphere esferaPersonaje)
+        {
+            
+            return TgcCollisionUtils.testSphereAABB(esferaPersonaje, plataformaMesh.BoundingBox);
+        }
+
+        public virtual TGCVector3 VectorMovimiento()
+        {
+            return vectorMovimiento;
         }
 
         public virtual void Update()

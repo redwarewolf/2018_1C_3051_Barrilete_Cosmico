@@ -16,13 +16,14 @@ namespace TGC.Group.Model.AI
         private TgcMesh plataformaMesh;
         private Escenario escenario;
         private TGCVector3 posicionInicial;
-        private TGCVector3 vectorMovimiento = new TGCVector3(-1, 0, 0); //Solo moveriamos en Y a las plataformas.
+         //Solo moveriamos en Y a las plataformas.
 
         public PlataformaX(TgcMesh plataformaMesh, Escenario escenario) : base(plataformaMesh, escenario)
         {
             this.plataformaMesh = plataformaMesh;
             this.posicionInicial = plataformaMesh.Position;
             this.escenario = escenario;
+            vectorMovimiento = new TGCVector3(-1, 0, 0);
         }
 
         public override void Update()
