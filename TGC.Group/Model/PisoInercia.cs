@@ -12,7 +12,7 @@ using TGC.Core.SceneLoader;
 using TGC.Core.Textures;
 using TGC.Core.SkeletalAnimation;
 using TGC.Core.Collision;
-using TGC.Examples.Collision.SphereCollision;
+using TGC.Group.SphereCollisionUtils;
 
 
 namespace TGC.Group.Model
@@ -73,9 +73,24 @@ namespace TGC.Group.Model
             }
             set
             {
-                _vectorEntrada = new TGCVector3(value.X, 0f, value.Z);
+                if(TGCVector3.Length(_vectorEntrada) == 0)
+                {
+                    _vectorEntrada = new TGCVector3(value.X, 0f, value.Z);
+                }
+                else
+                {
+                    TGCVector3 versor = value * (1/TGCVector3.Length(value));
+                    _vectorEntrada = versor * TGCVector3.Length(_vectorEntrada);
+                }
             }
         }
+
+
+        public TGCVector3 VersorEntrada
+        {
+            get { return _vectorEntrada * (1 / TGCVector3.Length(_vectorEntrada)); }
+        }
+
 
         public bool AutoTransform
         {
@@ -126,9 +141,9 @@ namespace TGC.Group.Model
         //    RenderMesh.updateValues();
         //}
 
-        public bool aCollisionFound(TgcSkeletalMesh personaje)
+        public bool aCollisionFound(Personaje personaje)
         {
-            var collisionResult = TgcCollisionUtils.classifyBoxBox(personaje.BoundingBox, this.SlidingBoundingBox);
+            var collisionResult = TgcCollisionUtils.classifyBoxBox(personaje.boundingBox(), this.SlidingBoundingBox);
             return (collisionResult != TgcCollisionUtils.BoxBoxResult.Afuera);
         }
 
