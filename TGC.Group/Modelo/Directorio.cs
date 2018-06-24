@@ -52,7 +52,11 @@ namespace TGC.Group.Modelo
         public string Sonido { get; set; }
         public string Hoguera { get; set; }
 
-        public Directorio(string mediaDir)
+        public string OlasLava { get; set; }
+        public string EfectoAlerta { get; set; }
+        public string TexturaAlerta { get; set; }
+
+        public Directorio(string mediaDir,string shadersDir)
         {
             EscenaCrash = mediaDir + "Escenas\\CrashBandicoot-TgcScene.xml";
 
@@ -81,6 +85,11 @@ namespace TGC.Group.Modelo
             Mascara = mediaDir + "Imagenes\\mascara.png";
             Sonido = mediaDir + "Imagenes\\sound.png";
             Hoguera = mediaDir + "Imagenes\\hoguera.png";
+
+
+            OlasLava = shadersDir + "OlasLava.fx";
+            EfectoAlerta = shadersDir + "EfectoAlerta.fx";
+            TexturaAlerta = mediaDir + "Texturas\\efecto_alarma.png"; 
         }
 
     }

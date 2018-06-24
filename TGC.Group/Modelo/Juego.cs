@@ -17,6 +17,7 @@ using TGC.Core.Collision;
 using TGC.Core.Shaders;
 using TGC.Core.Text;
 using TGC.Core.Particle;
+using TGC.Core.Interpolation;
 
 using TGC.Group.SphereCollisionUtils;
 using TGC.Group.Modelo.Rampas;
@@ -166,6 +167,14 @@ namespace TGC.Group.Modelo
         private TGCVector3 traslacionFrustum = new TGCVector3(0f, -0, -2800f);
         #endregion
 
+        #region Shaders
+        private Texture renderTarget2D;
+        private VertexBuffer screenQuadVB;
+
+        private Microsoft.DirectX.Direct3D.Effect efectoAlerta;
+        private TgcTexture texturaAlerta;
+        private InterpoladorVaiven interpoladorAlerta;
+        #endregion
         //Debug -> Hay que borrar estas variables
         #region Desarrollo
         private TGCVector3 movimientoRealCaja = TGCVector3.Empty;
@@ -195,7 +204,7 @@ namespace TGC.Group.Modelo
             ScreenRes_X = d3dDevice.PresentationParameters.BackBufferWidth;
             ScreenRes_Y = d3dDevice.PresentationParameters.BackBufferHeight;
             
-            directorio = new Directorio(MediaDir);
+            directorio = new Directorio(MediaDir,ShadersDir);
             Hoguera.texturesPath = directorio.TexturasPath;
             FuegoLuz.texturesPath = directorio.TexturasPath; ;
             Personaje.texturesPath = directorio.TexturasPath; ;
@@ -256,27 +265,8 @@ namespace TGC.Group.Modelo
             inicializarGUISecundaria();
             inicializarIluminacion();
             inicializarHUDS(d3dDevice);
-
-
+            inicializarShaders(d3dDevice);
             
-
-            string compilationErrors;
-            olasLava = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
-                null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
-            if (olasLava == null)
-            {
-                throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
-            }
-
-            foreach (TgcMesh mesh in escenario.MeshesParaEfectoLava())
-            {
-                mesh.Effect = olasLava;
-                mesh.Technique = "Olas";
-            }
-
-            olasLava.SetValue("screen_dx", ScreenRes_X);
-            olasLava.SetValue("screen_dy", ScreenRes_Y);
-           
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
         }
@@ -1086,6 +1076,41 @@ namespace TGC.Group.Modelo
             textoSonido.Size = new Size(200, 20);
             textoSonido.changeFont(new System.Drawing.Font("TimesNewRoman", 15, FontStyle.Bold));
 
+        }
+
+        public void inicializarShaders(Microsoft.DirectX.Direct3D.Device d3dDevice)
+        {
+
+            //Creamos un Render Targer sobre el cual se va a dibujar la pantalla
+            renderTarget2D = new Texture(D3DDevice.Instance.Device, D3DDevice.Instance.Device.PresentationParameters.BackBufferWidth,
+                D3DDevice.Instance.Device.PresentationParameters.BackBufferHeight, 1, Usage.RenderTarget, Format.X8R8G8B8, Pool.Default);
+
+            efectoAlerta = TgcShaders.loadEffect(directorio.EfectoAlerta);
+            texturaAlerta = TgcTexture.createTexture(d3dDevice, directorio.TexturaAlerta);
+
+            //Interpolador para efecto de variar la intensidad de la textura de alarma
+            interpoladorAlerta = new InterpoladorVaiven();
+            interpoladorAlerta.Min = 0;
+            interpoladorAlerta.Max = 1;
+            interpoladorAlerta.Speed = 5;
+            interpoladorAlerta.reset();
+
+            string compilationErrors;
+            olasLava = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, directorio.OlasLava,
+                null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            if (olasLava == null)
+            {
+                throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
+            }
+
+            foreach (TgcMesh mesh in escenario.MeshesParaEfectoLava())
+            {
+                mesh.Effect = olasLava;
+                mesh.Technique = "Olas";
+            }
+
+            olasLava.SetValue("screen_dx", ScreenRes_X);
+            olasLava.SetValue("screen_dy", ScreenRes_Y);
         }
 
     }
