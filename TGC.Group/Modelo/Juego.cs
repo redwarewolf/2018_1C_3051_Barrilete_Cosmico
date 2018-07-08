@@ -42,11 +42,13 @@ namespace TGC.Group.Modelo
             mediaDir = amediaDir;
         }
 
+        private float danioLava = 0.009f;
+
         static string mediaDir;
         private Directorio directorio;
         private Informador informador;
         private Escenario escenario;
-        private EstadoJuego estadoJuego;
+        public EstadoJuego estadoJuego;
         public static Octree octree;
         public static SoundManager soundManager;
 
@@ -213,6 +215,10 @@ namespace TGC.Group.Modelo
 
         private Texture g_pShadowMap; // Texture to which the shadow map is rendered
 
+        
+        private float tiempoActual;
+       // private float tiempoDeInvencibilidad = 20f; //Para desarrollo
+        private float tiempoDeInvencibilidad = 4f;
         public override void Init()
         {
             //Device de DirectX para crear primitivas.
@@ -288,7 +294,7 @@ namespace TGC.Group.Modelo
             //    throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
             //}
 
-            PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "MiShader.fx",
+            PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "PersonajeShader.fx",
                 null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
             if (PersonajeEffect == null)
             {
@@ -302,7 +308,7 @@ namespace TGC.Group.Modelo
             }
 
             personaje.personajeMesh.Effect = PersonajeEffect;
-            personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+            //personaje.personajeMesh.Technique = "DIFFUSE_MAP";
             //personaje.personajeMesh.Technique = "Arcoiris";
 
             //foreach (TgcMesh mesh in escenario.LavaMesh())
@@ -447,7 +453,10 @@ namespace TGC.Group.Modelo
             if (Input.keyPressed(Key.F))boundingBoxActivate = !boundingBoxActivate;
 
             //Activo y desactivo Modo Dios
-            if (Input.keyPressed(Key.I)) estadoJuego.godMode = !estadoJuego.godMode;
+            if (Input.keyPressed(Key.I))
+            {
+                personaje.godMode = !personaje.godMode;
+            }
 
             if (Input.keyPressed(Key.Z)) soundManager.actualizarEstado();
 
@@ -467,7 +476,7 @@ namespace TGC.Group.Modelo
                 // Para que no se pueda saltar cuando agarras algun objeto
                 if (!solicitudInteraccionConCaja)
                 {
-                    if (Input.keyUp(Key.Space) && saltoActual < coeficienteSalto && (doubleJump > 0 || estadoJuego.godMode))
+                    if (Input.keyUp(Key.Space) && saltoActual < coeficienteSalto && (doubleJump > 0 || personaje.godMode))
                     {
                         saltoActual = coeficienteSalto;
                         doubleJump -= 1;
@@ -485,10 +494,10 @@ namespace TGC.Group.Modelo
                 #endregion
 
                 #region Danio
-                if (escenario.personajeSobreLava() && !estadoJuego.godMode)
+                if (escenario.personajeSobreLava())
                 {
-                    soundManager.playSonidoDanio();
-                    escenario.quemarPersonaje();
+                   if(!personaje.godMode && !personaje.invencible) soundManager.playSonidoDanio();
+                    daniar(danioLava);
                 }
                 #endregion
 
@@ -513,6 +522,9 @@ namespace TGC.Group.Modelo
                     estadoJuego.partidaPerdida = true;
                 }
                 #endregion
+
+
+
 
                 #region Frutas
                 TgcMesh fruta;
@@ -541,7 +553,20 @@ namespace TGC.Group.Modelo
                     personaje.aumentarMascaras();
                     soundManager.playSonidoMoneda();
                     escenario.eliminarMascaraColisionada();
+                    //personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+                    personaje.personajeMesh.Technique = "Arcoiris";
+                    personaje.invencible = true;
+                    tiempoActual = tiempoAcumulado;
                 }
+
+                if(tiempoAcumulado - tiempoActual > tiempoDeInvencibilidad)
+                {
+                    personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+                    //personaje.personajeMesh.Technique = "Arcoiris";
+                    personaje.invencible = false;
+                }
+
+
                 textoMascaras.Text = personaje.mascaras.ToString();
 
 
@@ -621,6 +646,13 @@ namespace TGC.Group.Modelo
             }
             
         }
+
+        public void daniar(float danio)
+        {
+            personaje.aumentarVida(-danio);
+
+        }
+
         #region MovimientosMundo
         public void moverMundo(TGCVector3 movimientoOriginal)
         {
@@ -732,7 +764,7 @@ namespace TGC.Group.Modelo
             {
                 cajaColisionante.afectar(personaje);
                 interaccionCaja = true;
-                if (cajaColisionante.esTNT()) soundManager.playSonidoDanio();
+                if (cajaColisionante.esTNT() && (!personaje.godMode && !personaje.invencible)) soundManager.playSonidoDanio();
             }
             textoCajas.Text = personaje.cajas.ToString();
             
@@ -872,7 +904,7 @@ namespace TGC.Group.Modelo
                 Frustum.render();
                 octree.render(Frustum, boundingBoxActivate);
                 renderizarSprites();
-                renderizarDebug();
+               // renderizarDebug();
                 personaje.renderizarEmisorParticulas(ElapsedTime);
                 informador.renderizarInforme(estadoJuego, personaje, ElapsedTime);
 
@@ -1150,7 +1182,7 @@ namespace TGC.Group.Modelo
         }
         private void renderizarDebug()
         {
-            DrawText.drawText("Matriz Rotacion: " + personaje.matrizTransformacionPlataformaRotante + "\n"
+           /* DrawText.drawText("Matriz Rotacion: " + personaje.matrizTransformacionPlataformaRotante + "\n"
 
 
                                /*"Posicion Actual: " + personaje.position() + "\n"
@@ -1174,12 +1206,12 @@ namespace TGC.Group.Modelo
                                 + "Vector Movimiento Real Caja" + movimientoRealCaja + "\n"
                                 + "Interaccion Con Caja: " + interaccionConCaja + "\n"
                                 + "Colision Plataforma: " + colisionPlataforma + "\n"
-                                /*+ "Movimiento por plataforma: " + movimientoPorPlataforma*/, 100, 400, Color.GhostWhite);
-            DrawText.drawText("vector Rotacion: " + a + "\n"
+                                /*+ "Movimiento por plataforma: " + movimientoPorPlataforma, 100, 400, Color.GhostWhite);
+            /*DrawText.drawText("vector Rotacion: " + a + "\n"
                                 + "posicion BoundingBox: " + personaje.boundingBox().Position + "\n"
                                  + "posicion esfera: " + personaje.esferaPersonaje.Position + "\n"
 
-                , 400, 400, Color.GhostWhite);
+                , 400, 400, Color.GhostWhite);*/
         }
 
         /// <summary>

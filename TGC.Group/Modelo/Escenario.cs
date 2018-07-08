@@ -31,7 +31,7 @@ namespace TGC.Group.Modelo
         public List<Plataforma> plataformas { get; set; }
         public List<PlataformaRotante> plataformasRotantes { get; set; }
 
-        private float danioLava = 0.009f;
+        
 
         public Escenario(string pathEscenario,Personaje personaje)
         {
@@ -267,10 +267,7 @@ namespace TGC.Group.Modelo
             return RampasMesh().Exists(pisoDesnivelado => personaje.colisionConPisoDesnivelado(pisoDesnivelado));
         }
 
-        public void quemarPersonaje()
-        {
-            personaje.vida -= danioLava ;
-        }
+
         #endregion
 
         #region MeshToClassAdapters

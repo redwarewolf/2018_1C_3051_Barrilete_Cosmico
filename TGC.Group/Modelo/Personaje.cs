@@ -30,6 +30,9 @@ namespace TGC.Group.Modelo
         public int hogueras { get; set; } = 0;
         public int cajas { get; set; } = 0;
 
+        public bool invencible { get; set; } = false;
+        public bool godMode { get; set; } = false;
+
         public bool moving { get; set; } = false;
         public bool jumping { get; set; } = false;
         public bool sliding { get; set; } = false;
@@ -285,7 +288,12 @@ namespace TGC.Group.Modelo
         #region Estado
         public bool vidaCompleta() => vida == vidaMaxima;
         public bool vivo() => vida > 0;
-        public void aumentarVida(float aumento)=>vida += aumento;
+        public void aumentarVida(float aumento)
+        {
+            if (invencible || godMode) return;
+            vida += aumento;
+
+        }
         public void comerFrutaPodrida() => aumentarVida(-0.1f);
 
         public void aumentarFrutas() => frutas++;

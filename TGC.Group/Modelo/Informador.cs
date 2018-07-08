@@ -40,7 +40,7 @@ namespace TGC.Group.Modelo
 
             renderizarControles();
             //renderizarDebug();
-            drawer.drawText((estado.godMode ? "GOD MODE: ON" : ""), (int)(ScreenRes_X - 140f), 50, Color.Red);
+            drawer.drawText((personaje.godMode ? "GOD MODE: ON" : ""), (int)(ScreenRes_X - 140f), 50, Color.Red);
 
             if(checkpoint)
             {
