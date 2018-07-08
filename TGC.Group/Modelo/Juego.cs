@@ -193,6 +193,8 @@ namespace TGC.Group.Modelo
         private Microsoft.DirectX.Direct3D.Effect olasLavaEffect;
         private Microsoft.DirectX.Direct3D.Effect postProcessBloom;
 
+        private Microsoft.DirectX.Direct3D.Effect PersonajeEffect;
+
 
         private Surface g_pDepthStencil; // Depth-stencil buffer
         private Texture g_pRenderTarget, g_pGlowMap, g_pRenderTarget4, g_pRenderTarget4Aux;
@@ -240,8 +242,7 @@ namespace TGC.Group.Modelo
                 estadoJuego.reiniciar();
                 
             }
-            
-            
+
             //Le cambiamos la textura para diferenciarlo un poco
             personaje.changeDiffuseMaps(new[]
             {
@@ -285,11 +286,22 @@ namespace TGC.Group.Modelo
                 throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
             }
 
+            PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "MiShader.fx",
+                null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            if (PersonajeEffect == null)
+            {
+                throw new Exception("Error al cargar shader Rojo. Errores: " + compilationErrors);
+            }
+
             postProcessBloom = Microsoft.DirectX.Direct3D.Effect.FromFile(D3DDevice.Instance.Device, MediaDir + "GaussianBlur.fx", null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
             if (postProcessBloom == null)
             {
                 throw new Exception("Error al cargar shader postProcessBloom. Errores: " + compilationErrors);
             }
+
+            personaje.personajeMesh.Effect = PersonajeEffect;
+            personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+            //personaje.personajeMesh.Technique = "Arcoiris";
 
             foreach (TgcMesh mesh in escenario.LavaMesh())
             {
@@ -364,8 +376,12 @@ namespace TGC.Group.Modelo
 
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
+
         }
 
+        //PersonajeEffect:
+        //Para ningun efecto: personaje.personajeMesh.Technique = "DIFFUSE_MAP"; 
+        //Para efecto arcoiris: personaje.personajeMesh.Technique = "Arcoiris"; 
 
 
         public override void Update()
@@ -830,8 +846,9 @@ namespace TGC.Group.Modelo
                 D3DDevice.Instance.Device.BeginScene();
 
                 olasLavaEffect.SetValue("time", tiempoAcumulado);
-                
-            
+                PersonajeEffect.SetValue("time", tiempoAcumulado);
+
+
                 Frustum.render();
                 octree.render(Frustum, boundingBoxActivate);
                 renderizarSprites();
