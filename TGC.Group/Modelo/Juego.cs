@@ -190,7 +190,6 @@ namespace TGC.Group.Modelo
         private Microsoft.DirectX.Direct3D.Effect effectLuzLava;
         private Microsoft.DirectX.Direct3D.Effect personajeLightShader;
 
-        private Microsoft.DirectX.Direct3D.Effect olasLavaEffect;
         private Microsoft.DirectX.Direct3D.Effect postProcessBloom;
 
         private Microsoft.DirectX.Direct3D.Effect PersonajeEffect;
@@ -279,12 +278,12 @@ namespace TGC.Group.Modelo
 
             
             string compilationErrors;
-            olasLavaEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
-                null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
-            if (olasLavaEffect == null)
-            {
-                throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
-            }
+            //olasLavaEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
+            //    null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            //if (olasLavaEffect == null)
+            //{
+            //    throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
+            //}
 
             PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "MiShader.fx",
                 null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
@@ -303,17 +302,17 @@ namespace TGC.Group.Modelo
             personaje.personajeMesh.Technique = "DIFFUSE_MAP";
             //personaje.personajeMesh.Technique = "Arcoiris";
 
-            foreach (TgcMesh mesh in escenario.LavaMesh())
-            {
-                mesh.Effect = olasLavaEffect;
-                mesh.Technique = "Olas";
-            }
+            //foreach (TgcMesh mesh in escenario.LavaMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
 
-            foreach (TgcMesh mesh in escenario.FuegosMesh())
-            {
-                mesh.Effect = olasLavaEffect;
-                mesh.Technique = "Olas";
-            }
+            //foreach (TgcMesh mesh in escenario.FuegosMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
 
             postProcessBloom.Technique = "DefaultTechnique";
 
@@ -338,8 +337,8 @@ namespace TGC.Group.Modelo
             // Resolucion de pantalla
             postProcessBloom.SetValue("screen_dx", ScreenRes_X);
             postProcessBloom.SetValue("screen_dy", ScreenRes_Y);
-            olasLavaEffect.SetValue("screen_dx", ScreenRes_X);
-            olasLavaEffect.SetValue("screen_dy", ScreenRes_Y);
+            //olasLavaEffect.SetValue("screen_dx", ScreenRes_X);
+            //olasLavaEffect.SetValue("screen_dy", ScreenRes_Y);
 
             CustomVertex.PositionTextured[] vertices =
             {
@@ -373,6 +372,9 @@ namespace TGC.Group.Modelo
             g_mShadowProj = TGCMatrix.PerspectiveFovLH(Geometry.DegreeToRadian(80), aspectRatio, 50, 5000);
              D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(Geometry.DegreeToRadian(45.0f), aspectRatio, 2f, 4000f).ToMatrix();
 
+
+            efectoShadow.SetValue("screen_dx", ScreenRes_X);
+            efectoShadow.SetValue("screen_dy", ScreenRes_Y);
 
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
@@ -845,8 +847,10 @@ namespace TGC.Group.Modelo
 
                 D3DDevice.Instance.Device.BeginScene();
 
-                olasLavaEffect.SetValue("time", tiempoAcumulado);
+                //olasLavaEffect.SetValue("time", tiempoAcumulado);
                 PersonajeEffect.SetValue("time", tiempoAcumulado);
+                efectoShadow.SetValue("time", tiempoAcumulado);
+
 
 
                 Frustum.render();
@@ -1108,8 +1112,18 @@ namespace TGC.Group.Modelo
             meshes.ForEach(mesh =>
             {
                 if (shadow) mesh.Technique = "RenderShadow";
-                else mesh.Technique = "RenderScene";
-                mesh.Effect = efectoShadow;
+                else
+                {
+                    if(mesh.Layer == "LAVA" || mesh.Layer == "FUEGO")
+                    {
+                        mesh.Technique = "RenderSceneLava";
+                    }
+                    else
+                    {
+                        mesh.Technique = "RenderScene";
+                    }
+                }
+                    mesh.Effect = efectoShadow;
             });
            
               octree.modelos = meshes;
