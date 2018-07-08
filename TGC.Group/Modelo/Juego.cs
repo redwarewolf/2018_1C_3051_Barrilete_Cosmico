@@ -66,7 +66,7 @@ namespace TGC.Group.Modelo
 
         private bool boundingBoxActivate = false;
 
-
+        TGCVector3 caida = new TGCVector3(0f, -2f, 0f);
 
 
         #region Personaje
@@ -158,7 +158,7 @@ namespace TGC.Group.Modelo
         private TgcThirdPersonCamera camaraInterna;
         private float cameraOffsetHeight = 400;
         private float cameraOffsetForward = -800;
-        private TGCVector3 traslacionFrustum = new TGCVector3(0f, 0, -2800f);
+        private TGCVector3 traslacionFrustum = new TGCVector3(0f, 0f, -2400f);
         #endregion
 
         #region Resolucion
@@ -194,7 +194,6 @@ namespace TGC.Group.Modelo
         private Microsoft.DirectX.Direct3D.Effect postProcessBloom;
 
         private Microsoft.DirectX.Direct3D.Effect PersonajeEffect;
-
 
         private Surface g_pDepthStencil; // Depth-stencil buffer
         private Texture g_pRenderTarget, g_pGlowMap, g_pRenderTarget4, g_pRenderTarget4Aux;
@@ -268,7 +267,7 @@ namespace TGC.Group.Modelo
             octree.create(escenario.scene.Meshes, escenario.BoundingBox());
             octree.createDebugOctreeMeshes();// --> Para renderizar las "cajas" que genera
 
-            Frustum.Color = Color.Black;
+            Frustum.Color = Color.Blue;
 
 
             inicializarGUIPrincipal();
@@ -700,52 +699,59 @@ namespace TGC.Group.Modelo
             
             Caja cajaColisionante = escenario.obtenerColisionCajaPersonaje();
 
-            if (cajaColisionante != null) interaccionCaja = true;
+            /*if (cajaColisionante != null) interaccionCaja = true;
             else
             {
                 interaccionCaja = false;
                 return;
-            }
+            }*/
 
-            cajaColisionante.afectar(personaje);
+            if (cajaColisionante != null)
+            {
+                cajaColisionante.afectar(personaje);
+                interaccionCaja = true;
+                if (cajaColisionante.esTNT()) soundManager.playSonidoDanio();
+            }
             textoCajas.Text = personaje.cajas.ToString();
-            if (cajaColisionante.esTNT()) soundManager.playSonidoDanio();
             
             
-            if (!solicitudInteraccionConCaja)
+           /* if (!solicitudInteraccionConCaja)
             {
                 interaccionCaja = false;
                 return;
-            }
+            }*/
             
 
-            if (cajaColisionante == objetoMovibleGlobal) cajaColisionante = null;
+           // if (cajaColisionante == objetoMovibleGlobal) cajaColisionante = null;
 
             //Si es una caja nueva updatea la referencia global
             if (cajaColisionante != null && cajaColisionante != objetoEscenario) objetoEscenario = cajaColisionante;
-
             if (objetoEscenario != null) generarMovimiento(objetoEscenario, movimientoOriginal);
+
         }
         public void generarMovimiento(Caja objetoMovible, TGCVector3 movimiento)
         {
             if (objetoMovibleGlobal == null || objetoMovibleGlobal != objetoMovible) objetoMovibleGlobal = objetoMovible;
 
-            esferaCaja = new TgcBoundingSphere(objetoMovible.boundingBox().calculateBoxCenter() + new TGCVector3(0f, 15f, 0f), objetoMovible.boundingBox().calculateBoxRadius() * 0.7f);
+            esferaCaja = new TgcBoundingSphere(objetoMovible.boundingBox().calculateBoxCenter() + new TGCVector3(0f, 15f, 0f), objetoMovible.boundingBox().calculateBoxRadius() * 0.65f);
 
             movimientoRealCaja = ColisionadorEsferico.moveCharacter(esferaCaja, movimiento,  escenario.MeshesColisionablesBBSin(objetoMovible.cajaMesh));
 
             var testCol =personaje.colisionaConCaja(objetoMovible);
-            
+
             if (solicitudInteraccionConCaja && testCol)
             {
                 if (!escenario.colisionEscenario()) objetoMovible.Move(movimientoRealCaja);
                 else if (escenario.colisionConPilar() || personaje.colisionaConCaja(objetoMovible)) movimientoRealCaja = TGCVector3.Empty;
                 else objetoMovible.Move(-movimientoRealCaja);
-                
+
             }
-            else if (movimientoRealCaja.Y < 0) objetoMovible.Move(movimientoRealCaja);
+            else if (!escenario.colisionaConPiso(objetoMovibleGlobal.cajaMesh)) objetoMovibleGlobal.Move(caida);
+                
 
         }
+
+        
 
         #endregion
 
@@ -830,7 +836,6 @@ namespace TGC.Group.Modelo
 
                 #endregion
 
-
                 #region Principales
                 
                 // guardo el Render target anterior y seteo la textura como render target
@@ -847,7 +852,6 @@ namespace TGC.Group.Modelo
 
                 olasLavaEffect.SetValue("time", tiempoAcumulado);
                 PersonajeEffect.SetValue("time", tiempoAcumulado);
-
 
                 Frustum.render();
                 octree.render(Frustum, boundingBoxActivate);
@@ -909,8 +913,6 @@ namespace TGC.Group.Modelo
 
                 D3DDevice.Instance.Device.EndScene();
                 #endregion
-
-
 
                 #region GlowMap
                 // dibujo el glow map
