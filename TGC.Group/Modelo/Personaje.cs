@@ -88,7 +88,7 @@ namespace TGC.Group.Modelo
             
 
             //Descomentar para ubicarlo donde se este desarrollando
-            POSICION_INICIAL_PERSONAJE = posicionDesarrollo;
+           // POSICION_INICIAL_PERSONAJE = posicionDesarrollo;
             
             inicializarPosicion();
             
