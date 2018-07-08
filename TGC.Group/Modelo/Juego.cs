@@ -66,7 +66,7 @@ namespace TGC.Group.Modelo
 
         private bool boundingBoxActivate = false;
 
-        TGCVector3 caida = new TGCVector3(0f, -2f, 0f);
+        TGCVector3 caida = new TGCVector3(0f, -8f, 0f);
 
 
         #region Personaje
@@ -611,9 +611,9 @@ namespace TGC.Group.Modelo
             if (plataformaRotante != null)
             {
                 movimientoRealPersonaje = colliderOBB.manageColisionEsferaOBB(personaje.esferaPersonaje, movimientoOriginal, plataformaRotante.OBB);
-                
-                personaje.matrizTransformacionPlataformaRotante = plataformaRotante.transform();
-                
+               /* personaje.matrizTransformacionPlataformaRotante = plataformaRotante.transform();                
+                personaje.esferaPersonaje.moveCenter(TGCVector3.Multiply(plataformaRotante.vRotacionOBB,tiempoAcumulado));*/
+
             }
             else
             {
@@ -634,7 +634,7 @@ namespace TGC.Group.Modelo
             personaje.transformar();
             //personaje.move(movimientoRealPersonaje);
         }
-       
+        TGCVector3 a;
         public TGCVector3 movimientoPorPlataformas()
         {
 
@@ -699,13 +699,6 @@ namespace TGC.Group.Modelo
             
             Caja cajaColisionante = escenario.obtenerColisionCajaPersonaje();
 
-            /*if (cajaColisionante != null) interaccionCaja = true;
-            else
-            {
-                interaccionCaja = false;
-                return;
-            }*/
-
             if (cajaColisionante != null)
             {
                 cajaColisionante.afectar(personaje);
@@ -714,16 +707,6 @@ namespace TGC.Group.Modelo
             }
             textoCajas.Text = personaje.cajas.ToString();
             
-            
-           /* if (!solicitudInteraccionConCaja)
-            {
-                interaccionCaja = false;
-                return;
-            }*/
-            
-
-           // if (cajaColisionante == objetoMovibleGlobal) cajaColisionante = null;
-
             //Si es una caja nueva updatea la referencia global
             if (cajaColisionante != null && cajaColisionante != objetoEscenario) objetoEscenario = cajaColisionante;
             if (objetoEscenario != null) generarMovimiento(objetoEscenario, movimientoOriginal);
@@ -737,7 +720,7 @@ namespace TGC.Group.Modelo
 
             movimientoRealCaja = ColisionadorEsferico.moveCharacter(esferaCaja, movimiento,  escenario.MeshesColisionablesBBSin(objetoMovible.cajaMesh));
 
-            var testCol =personaje.colisionaConCaja(objetoMovible);
+            var testCol = personaje.colisionaConCaja(objetoMovible);
 
             if (solicitudInteraccionConCaja && testCol)
             {
@@ -813,6 +796,8 @@ namespace TGC.Group.Modelo
             {
                 Surface pSurf, pOldRT, pOldDS;
                 var modelosAnterior = octree.modelos;
+
+                
 
                 #region ShadowMap
                 g_LightPos = personaje.position() + new TGCVector3(-300f,400f,-300f);
@@ -959,6 +944,7 @@ namespace TGC.Group.Modelo
                     m.Technique = tec;
                 }
 
+                escenario.plataformasRotantes.ForEach(plat => plat.Render(tiempoAcumulado));
 
                 D3DDevice.Instance.Device.EndScene();
 
@@ -1141,30 +1127,37 @@ namespace TGC.Group.Modelo
         }
         private void renderizarDebug()
         {
-            DrawText.drawText("Posicion Actual: " + personaje.position() + "\n"
-                              // + "Vector Movimiento Real Personaje: " + movimientoRealPersonaje + "\n"
-                               + "Colision con Caja: " + interaccionCaja + "\n"
-                               + "Solicitud interaccion con caja: " + solicitudInteraccionConCaja + "\n"
-                               + "Moving: " + personaje.moving + "\n"
-                               + "Jumping: " + personaje.jumping + "\n"
-                               + "Sliding: " + personaje.sliding + "\n"
-                               + "Kicking: " + personaje.kicking + "\n"
-                               + "Elapsed Time: " + ElapsedTime +"\n"
-                              /* + "Colision Con Rampa: " + colisionRampa + "\n"
-                               + "Vertice mas alto: " + verticeMasAltoGlobal + "\n"
-                               + "Vector diferencia: " + vectorDiferenciaGlobal + "\n"
-                               + "Y Por desnivel: " + YPorDesnivelGlobal + "\n"
-                               + "Longitud Rampa: " + longitudRampaGlobal + "\n"
-                               + "Altura Rampa: " + alturaRampaGlobal + "\n"
-                               + "Posicion bounding box: " + personaje.boundingBox().calculateBoxCenter() + "\n"
-                               + "Coeficiente Diferencial: " + coeficienteDiferencialGlobal + "\n"
-                               /*+ "Vector Movimiento Relativo Personaje" + movimientoRelativoPersonaje + "\n"
-                               + "Vector Movimiento Real Caja" + movimientoRealCaja + "\n"
-                               + "Interaccion Con Caja: " + interaccionConCaja + "\n"
-                               + "Colision Plataforma: " + colisionPlataforma + "\n"
-                               /*+ "Movimiento por plataforma: " + movimientoPorPlataforma*/, 0, 600, Color.GhostWhite);
+            DrawText.drawText("Matriz Rotacion: " + personaje.matrizTransformacionPlataformaRotante + "\n"
+
+
+                               /*"Posicion Actual: " + personaje.position() + "\n"
+                                             // + "Vector Movimiento Real Personaje: " + movimientoRealPersonaje + "\n"
+                                              + "Colision con Caja: " + interaccionCaja + "\n"
+                                              + "Solicitud interaccion con caja: " + solicitudInteraccionConCaja + "\n"
+                                              + "Moving: " + personaje.moving + "\n"
+                                              + "Jumping: " + personaje.jumping + "\n"
+                                              + "Sliding: " + personaje.sliding + "\n"
+                                              + "Kicking: " + personaje.kicking + "\n"
+                                              + "Elapsed Time: " + ElapsedTime +"\n"*/
+                               /* + "Colision Con Rampa: " + colisionRampa + "\n"
+                                + "Vertice mas alto: " + verticeMasAltoGlobal + "\n"
+                                + "Vector diferencia: " + vectorDiferenciaGlobal + "\n"
+                                + "Y Por desnivel: " + YPorDesnivelGlobal + "\n"
+                                + "Longitud Rampa: " + longitudRampaGlobal + "\n"
+                                + "Altura Rampa: " + alturaRampaGlobal + "\n"
+                                + "Posicion bounding box: " + personaje.boundingBox().calculateBoxCenter() + "\n"
+                                + "Coeficiente Diferencial: " + coeficienteDiferencialGlobal + "\n"
+                                /*+ "Vector Movimiento Relativo Personaje" + movimientoRelativoPersonaje + "\n"
+                                + "Vector Movimiento Real Caja" + movimientoRealCaja + "\n"
+                                + "Interaccion Con Caja: " + interaccionConCaja + "\n"
+                                + "Colision Plataforma: " + colisionPlataforma + "\n"
+                                /*+ "Movimiento por plataforma: " + movimientoPorPlataforma*/, 100, 400, Color.GhostWhite);
+            DrawText.drawText("vector Rotacion: " + a + "\n"
+                                + "posicion BoundingBox: " + personaje.boundingBox().Position + "\n"
+                                 + "posicion esfera: " + personaje.esferaPersonaje.Position + "\n"
+
+                , 400, 400, Color.GhostWhite);
         }
-        
 
         /// <summary>
         ///     Se llama cuando termina la ejecución del ejemplo.

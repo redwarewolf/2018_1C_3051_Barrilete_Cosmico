@@ -13,7 +13,7 @@ namespace TGC.Group.Modelo
         public bool partidaPerdida { get; set; } = false;
         public bool partidaGanada { get; set; } = false;
         public bool menu { get; set; } = true;
-        public bool godMode { get; set; } = false;
+        public bool godMode { get; set; } = true;
         
 
         public EstadoJuego()
@@ -27,7 +27,7 @@ namespace TGC.Group.Modelo
             partidaPerdida = false;
             partidaGanada = false;
             menu = false;
-            godMode = false;
+           // godMode = true;
         }
     }
 }

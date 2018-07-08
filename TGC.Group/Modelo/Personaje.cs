@@ -49,7 +49,7 @@ namespace TGC.Group.Modelo
         private float RADIO_ESFERA;
 
         public TGCVector3 POSICION_INICIAL_PERSONAJE { get; set; } = new TGCVector3(0f,0.1f,0f);
-        public TGCVector3 posicionDesarrollo = new TGCVector3(-504f, 100f, -5700f);
+        public TGCVector3 posicionDesarrollo = new TGCVector3(-3870.264f, 1402.333f, -6263.998f);
         private TGCVector3 CHECKPOINT = new TGCVector3(0f, 0f, 0f);
 
         private DireccionPersonaje direccion = new DireccionPersonaje();
@@ -89,7 +89,7 @@ namespace TGC.Group.Modelo
 
             //Descomentar para ubicarlo donde se este desarrollando
             POSICION_INICIAL_PERSONAJE = posicionDesarrollo;
-
+            
             inicializarPosicion();
             
         }
@@ -130,10 +130,11 @@ namespace TGC.Group.Modelo
             float anguloRotado = (personajeMesh.Rotation.Y + FastMath.ToRad(180f));
             personajeMesh.Transform =  TGCMatrix.Scaling(PERSONAJE_SCALE)
                                       *TGCMatrix.RotationY(anguloRotado)
-                                      *TGCMatrix.Translation(posicionActual)
-                                      *matrizTransformacionPlataformaRotante;
-            personajeMesh.BoundingBox.transform(TGCMatrix.Translation(posicionActual) * matrizTransformacionPlataformaRotante);
-
+                                      * TGCMatrix.Translation(posicionActual)
+                                      * matrizTransformacionPlataformaRotante
+                                      ;
+            personajeMesh.BoundingBox.transform(TGCMatrix.Translation(posicionActual)* matrizTransformacionPlataformaRotante );
+            
         }
         public void renderizarEmisorParticulas(float ElapsedTime)
         {
