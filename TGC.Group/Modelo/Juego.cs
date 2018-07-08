@@ -18,6 +18,7 @@ using TGC.Core.Shaders;
 using TGC.Core.Text;
 using TGC.Core.Particle;
 using TGC.Core.Geometry;
+using TGC.Core.Fog;
 
 using TGC.Group.SphereCollisionUtils;
 using TGC.Group.Modelo.Rampas;
@@ -66,8 +67,11 @@ namespace TGC.Group.Modelo
 
         private bool boundingBoxActivate = false;
 
-        TGCVector3 caida = new TGCVector3(0f, -8f, 0f);
+        TGCVector3 caidaCajas = new TGCVector3(0f, -8f, 0f);
 
+
+        private TgcFog fog;
+        private bool NieblaActivada = true;
 
         #region Personaje
         private Personaje personaje;
@@ -190,7 +194,6 @@ namespace TGC.Group.Modelo
         private Microsoft.DirectX.Direct3D.Effect effectLuzLava;
         private Microsoft.DirectX.Direct3D.Effect personajeLightShader;
 
-        private Microsoft.DirectX.Direct3D.Effect olasLavaEffect;
         private Microsoft.DirectX.Direct3D.Effect postProcessBloom;
 
         private Microsoft.DirectX.Direct3D.Effect PersonajeEffect;
@@ -232,7 +235,7 @@ namespace TGC.Group.Modelo
                 personaje = new Personaje(directorio);
                 estadoJuego = new EstadoJuego();
                 escenario = new Escenario(directorio.EscenaCrash, personaje);
-
+                inicializarFog();
             }
             else
             {
@@ -267,7 +270,7 @@ namespace TGC.Group.Modelo
             octree.create(escenario.scene.Meshes, escenario.BoundingBox());
             octree.createDebugOctreeMeshes();// --> Para renderizar las "cajas" que genera
 
-            Frustum.Color = Color.Blue;
+            Frustum.Color = fog.Color;
 
 
             inicializarGUIPrincipal();
@@ -278,12 +281,12 @@ namespace TGC.Group.Modelo
 
             
             string compilationErrors;
-            olasLavaEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
-                null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
-            if (olasLavaEffect == null)
-            {
-                throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
-            }
+            //olasLavaEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
+            //    null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            //if (olasLavaEffect == null)
+            //{
+            //    throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
+            //}
 
             PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "MiShader.fx",
                 null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
@@ -302,17 +305,17 @@ namespace TGC.Group.Modelo
             personaje.personajeMesh.Technique = "DIFFUSE_MAP";
             //personaje.personajeMesh.Technique = "Arcoiris";
 
-            foreach (TgcMesh mesh in escenario.LavaMesh())
-            {
-                mesh.Effect = olasLavaEffect;
-                mesh.Technique = "Olas";
-            }
+            //foreach (TgcMesh mesh in escenario.LavaMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
 
-            foreach (TgcMesh mesh in escenario.FuegosMesh())
-            {
-                mesh.Effect = olasLavaEffect;
-                mesh.Technique = "Olas";
-            }
+            //foreach (TgcMesh mesh in escenario.FuegosMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
 
             postProcessBloom.Technique = "DefaultTechnique";
 
@@ -337,8 +340,8 @@ namespace TGC.Group.Modelo
             // Resolucion de pantalla
             postProcessBloom.SetValue("screen_dx", ScreenRes_X);
             postProcessBloom.SetValue("screen_dy", ScreenRes_Y);
-            olasLavaEffect.SetValue("screen_dx", ScreenRes_X);
-            olasLavaEffect.SetValue("screen_dy", ScreenRes_Y);
+            //olasLavaEffect.SetValue("screen_dx", ScreenRes_X);
+            //olasLavaEffect.SetValue("screen_dy", ScreenRes_Y);
 
             CustomVertex.PositionTextured[] vertices =
             {
@@ -373,14 +376,37 @@ namespace TGC.Group.Modelo
              D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(Geometry.DegreeToRadian(45.0f), aspectRatio, 2f, 4000f).ToMatrix();
 
 
+            efectoShadow.SetValue("screen_dx", ScreenRes_X);
+            efectoShadow.SetValue("screen_dy", ScreenRes_Y);
+
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
+
+            efectoShadow.SetValue("ColorFog", fog.Color.ToArgb());
+            efectoShadow.SetValue("StartFogDistance", fog.StartDistance);
+            efectoShadow.SetValue("EndFogDistance", fog.EndDistance);
+            efectoShadow.SetValue("Density", fog.Density);
 
         }
 
         //PersonajeEffect:
         //Para ningun efecto: personaje.personajeMesh.Technique = "DIFFUSE_MAP"; 
         //Para efecto arcoiris: personaje.personajeMesh.Technique = "Arcoiris"; 
+
+        private void inicializarFog()
+        {
+            fog = new TgcFog();
+            fog.Enabled = true;
+            fog.StartDistance = 3200;
+            fog.EndDistance = 4000;
+            fog.Density = 0.1f;
+            fog.Color = (NieblaActivada ? Color.LightGray : Color.Black);
+
+            if (fog.Enabled)
+            {
+                fog.updateValues();
+            }
+        }
 
 
         public override void Update()
@@ -732,7 +758,7 @@ namespace TGC.Group.Modelo
                 else objetoMovible.Move(-movimientoRealCaja);
 
             }
-            else if (!escenario.colisionaConPiso(objetoMovibleGlobal.cajaMesh)) objetoMovibleGlobal.Move(caida);
+            else if (!escenario.colisionaConPiso(objetoMovibleGlobal.cajaMesh)) objetoMovibleGlobal.Move(caidaCajas);
                 
 
         }
@@ -833,13 +859,15 @@ namespace TGC.Group.Modelo
                 // hago lo mismo con el depthbuffer, necesito el que no tiene multisampling
                 pOldDS = D3DDevice.Instance.Device.DepthStencilSurface;
                 D3DDevice.Instance.Device.DepthStencilSurface = g_pDepthStencil;
-                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
-
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                //TODO
 
                 D3DDevice.Instance.Device.BeginScene();
 
-                olasLavaEffect.SetValue("time", tiempoAcumulado);
+                //olasLavaEffect.SetValue("time", tiempoAcumulado);
                 PersonajeEffect.SetValue("time", tiempoAcumulado);
+                efectoShadow.SetValue("time", tiempoAcumulado);
+                efectoShadow.SetValue("CameraPos", TGCVector3.Vector3ToFloat4Array(Camara.Position));
 
                 Frustum.render();
                 octree.render(Frustum, boundingBoxActivate);
@@ -870,27 +898,7 @@ namespace TGC.Group.Modelo
 
 
 
-                /*TgcMesh luzCercana = escenario.obtenerFuenteLuzCercana(personaje.position(), 2500f);
-                if (luzCercana != null)
-                {
-                    personaje.effect().SetValue("lightColor", ColorValue.FromColor(Color.Red));
-                    personaje.effect().SetValue("lightPosition", TGCVector3.Vector3ToFloat4Array(luzCercana.Position));
-                    personaje.effect().SetValue("eyePosition", TGCVector3.Vector3ToFloat4Array(Camara.Position));
-                }
-                personaje.effect().SetValue("materialEmissiveColor", ColorValue.FromColor(Color.White));
-                personaje.effect().SetValue("materialAmbientColor", ColorValue.FromColor(Color.FromArgb(50, 50, 50)));
-                personaje.effect().SetValue("materialDiffuseColor", ColorValue.FromColor(Color.White));
-                personaje.effect().SetValue("materialSpecularColor", ColorValue.FromColor(Color.DimGray));
-                personaje.effect().SetValue("materialSpecularExp", 500f);
-
-                personaje.effect().SetValue("lightIntensity", 20);
-                personaje.effect().SetValue("lightAttenuation", 25);
-
-               foreach (TgcMesh mesh in meshesConLuz)
-                {
-                    mesh.Effect.SetValue("eyePosition", TGCVector3.Vector3ToFloat4Array(Camara.Position));
-                }*/
-
+               
 
                 //Emisores de Particulas
                 D3DDevice.Instance.ParticlesEnabled = true;
@@ -967,7 +975,7 @@ namespace TGC.Group.Modelo
                 D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
                 postProcessBloom.SetValue("g_RenderTarget", g_pGlowMap);
 
-                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
                 postProcessBloom.Begin(FX.None);
                 postProcessBloom.BeginPass(0);
                 D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
@@ -994,7 +1002,7 @@ namespace TGC.Group.Modelo
                     D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
                     postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget4);
 
-                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
                     postProcessBloom.Begin(FX.None);
                     postProcessBloom.BeginPass(0);
                     D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
@@ -1017,7 +1025,7 @@ namespace TGC.Group.Modelo
                     D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
                     postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget4Aux);
 
-                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
                     postProcessBloom.Begin(FX.None);
                     postProcessBloom.BeginPass(1);
                     D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
@@ -1041,7 +1049,7 @@ namespace TGC.Group.Modelo
                 D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
                 postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget);
                 postProcessBloom.SetValue("g_GlowMap", g_pRenderTarget4Aux);
-                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
                 postProcessBloom.Begin(FX.None);
                 postProcessBloom.BeginPass(0);
                 D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
@@ -1079,7 +1087,7 @@ namespace TGC.Group.Modelo
             D3DDevice.Instance.Device.SetRenderTarget(0, pShadowSurf);
             var pOldDS = D3DDevice.Instance.Device.DepthStencilSurface;
             D3DDevice.Instance.Device.DepthStencilSurface = g_pDSShadow;
-            D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+            D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
             D3DDevice.Instance.Device.BeginScene();
 
             // Hago el render de la escena pp dicha
@@ -1099,8 +1107,20 @@ namespace TGC.Group.Modelo
             meshes.ForEach(mesh =>
             {
                 if (shadow) mesh.Technique = "RenderShadow";
-                else mesh.Technique = "RenderScene";
-                mesh.Effect = efectoShadow;
+                else
+                {
+                    if(mesh.Layer == "LAVA" || mesh.Layer == "FUEGO")
+                    {
+                        mesh.Technique = (NieblaActivada ? "RenderSceneLavaFog" : "RenderSceneLava");
+                        //para activar niebla: "RenderSceneLavaFog"
+                    }
+                    else
+                    {
+                        mesh.Technique = (NieblaActivada ? "RenderSceneFog" : "RenderScene");
+                        //para activar niebla: "RenderSceneFog"
+                    }
+                }
+                    mesh.Effect = efectoShadow;
             });
            
               octree.modelos = meshes;

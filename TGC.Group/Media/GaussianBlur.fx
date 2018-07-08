@@ -212,11 +212,14 @@ void BlurH(float2 screen_pos : TEXCOORD0, out float4 Color : COLOR)
     Color.a = 1;
 }
 
+
+
 void BlurV(float2 screen_pos : TEXCOORD0, out float4 Color : COLOR)
 {
     Color = 0;
     for (int i = 0; i < kernel_size; ++i)
         Color += tex2D(RenderTarget, screen_pos + float2(0, (float) (i - kernel_r) / screen_dy)) * Kernel[i];
+
     Color.a = 1;
 }
 
