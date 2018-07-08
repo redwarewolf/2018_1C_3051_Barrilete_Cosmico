@@ -435,15 +435,7 @@ namespace TGC.Group.Modelo
             if (!estadoJuego.partidaPausada && !estadoJuego.partidaPerdida)
             {
                
-                if (Input.keyDown(Key.R)) solicitudInteraccionConCaja = true;
-                else solicitudInteraccionConCaja = false;
-
-                if (Input.keyDown(Key.Q))personaje.kicking = true;
-                else personaje.kicking = false;
-
-                if (personaje.VELOCIDAD_EXTRA > 0) personaje.running = true;
-                else personaje.running = false;
-
+               
 
                 #region Salto
                 // Para que no se pueda saltar cuando agarras algun objeto
@@ -550,13 +542,24 @@ namespace TGC.Group.Modelo
 
                 #region Movimientos
 
-                personaje.moving = personaje.rotar(Input,new Key());
+                personaje.moving = personaje.rotar(Input);
                 personaje.actualizarValores(ElapsedTime);
                 //Vector de movimiento
                 var movimientoOriginal = new TGCVector3(0,0,0);
                 float movX = 0;
                 float movY = saltoRealizado;
                 float movZ = 0;
+
+
+                if (Input.keyDown(Key.R)) solicitudInteraccionConCaja = true;
+                else solicitudInteraccionConCaja = false;
+
+                if (Input.keyDown(Key.Q)) personaje.kicking = true;
+                else personaje.kicking = false;
+
+                if (personaje.VELOCIDAD_EXTRA > 0 && personaje.moving) personaje.running = true;
+                else personaje.running = false;
+
 
                 if (personaje.moving)
                 {

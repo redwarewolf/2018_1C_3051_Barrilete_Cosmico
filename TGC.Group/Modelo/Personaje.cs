@@ -209,7 +209,7 @@ namespace TGC.Group.Modelo
             
         }
 
-        public bool rotar(TgcD3dInput Input,Key key)
+        public bool rotar(TgcD3dInput Input)
         {
             bool moving = false;
             //Adelante
