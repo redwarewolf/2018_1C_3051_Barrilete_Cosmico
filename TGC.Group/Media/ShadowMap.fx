@@ -101,7 +101,8 @@ void VertScene(float4 iPos : POSITION,
 	out float2 Tex : TEXCOORD0,
 	out float4 vPos : TEXCOORD1,
 	out float3 vNormal : TEXCOORD2,
-	out float4 vPosLight : TEXCOORD3
+	out float4 vPosLight : TEXCOORD3,
+	out float4 PosView : COLOR0
 )
 {
 	// transformo al screen space
@@ -109,6 +110,8 @@ void VertScene(float4 iPos : POSITION,
 
 	// propago coordenadas de textura
     Tex = iTex;
+
+	PosView = mul(iPos, matWorldView);
 
 	// propago la normal
     vNormal = mul(iNormal, (float3x3) matWorldView);
@@ -152,6 +155,13 @@ float4 PixScene(float2 Tex : TEXCOORD0,
     return color_base;
 }
 
+// variable de fogs
+float4 ColorFog;
+float4 CameraPos;
+float StartFogDistance;
+float EndFogDistance;
+float Density;
+
 float frecuencia = 5;
 float factorY = 10;
 float factorX = -5;
@@ -159,10 +169,11 @@ float factorX = -5;
 float screen_dx = 800;
 float screen_dy = 600;
 
-float4 PixSceneLava(float2 Tex : TEXCOORD0,
+float4 PixSceneLavaFog(float2 Tex : TEXCOORD0,
 	float4 vPos : TEXCOORD1,
 	float3 vNormal : TEXCOORD2,
-	float4 vPosLight : TEXCOORD3
+	float4 vPosLight : TEXCOORD3,
+	float4 PosView : COLOR0
 ) : COLOR
 {
 	float3 vLight = normalize(float3(vPos - g_vLightPos));
@@ -192,8 +203,121 @@ float4 PixSceneLava(float2 Tex : TEXCOORD0,
 	float4 color_base = tex2D(diffuseMap, Tex );
 	color_base.rgb *= 0.5 + 0.5 * K;
 
+	//return color_base;
+
+	float zn = StartFogDistance;
+	float zf = EndFogDistance;
+
+	if (PosView.z < zn)
+		return color_base;
+	else if (PosView.z > zf)
+	{
+		color_base = ColorFog;
+		return color_base;
+	}
+	else
+	{
+		// combino fog y textura
+		float1 total = zf - zn;
+		float1 resto = PosView.z - zn;
+		float1 proporcion = resto / total;
+		color_base = lerp(color_base, ColorFog, proporcion);
+		return color_base;
+	}
+}
+
+float4 PixSceneLava(float2 Tex : TEXCOORD0,
+	float4 vPos : TEXCOORD1,
+	float3 vNormal : TEXCOORD2,
+	float4 vPosLight : TEXCOORD3,
+	float4 PosView : COLOR0
+) : COLOR
+{
+	float3 vLight = normalize(float3(vPos - g_vLightPos));
+	float cono = dot(vLight, g_vLightDir);
+	float4 K = 0.0;
+	if (cono > 0.7)
+	{
+		// coordenada de textura CT
+		float2 CT = 0.5 * vPosLight.xy / vPosLight.w + float2(0.5, 0.5);
+		CT.y = 1.0f - CT.y;
+
+		// sin ningun aa. conviene con smap size >= 512
+		float I = (tex2D(g_samShadow, CT) + EPSILON < vPosLight.z / vPosLight.w) ? 0.0f : 1.0f;
+
+		if (cono < 0.8)
+			I *= 1 - (0.8 - cono) * 10;
+
+		K = I;
+	}
+
+	float y = Tex.y * screen_dy + (3 * cos(factorY)) * sin(Tex.y * time * frecuencia);
+	Tex.y = y / screen_dy;
+
+	float x = Tex.x * screen_dx + (3 * sin(factorX)) * cos(Tex.x * time * frecuencia);
+	Tex.x = x / screen_dx;
+
+	float4 color_base = tex2D(diffuseMap, Tex);
+	color_base.rgb *= 0.5 + 0.5 * K;
+
 	return color_base;
 }
+
+
+
+
+float4 PixSceneFog(float2 Tex : TEXCOORD0,
+	float4 vPos : TEXCOORD1,
+	float3 vNormal : TEXCOORD2,
+	float4 vPosLight : TEXCOORD3,
+	float4 PosView : COLOR0
+) : COLOR
+{
+	float3 vLight = normalize(float3(vPos - g_vLightPos));
+	float cono = dot(vLight, g_vLightDir);
+	float4 K = 0.0;
+	if (cono > 0.7)
+	{
+		// coordenada de textura CT
+		float2 CT = 0.5 * vPosLight.xy / vPosLight.w + float2(0.5, 0.5);
+		CT.y = 1.0f - CT.y;
+
+		// sin ningun aa. conviene con smap size >= 512
+		float I = (tex2D(g_samShadow, CT) + EPSILON < vPosLight.z / vPosLight.w) ? 0.0f : 1.0f;
+
+		if (cono < 0.8) {
+			I *= 1 - (0.8 - cono) * 10;
+		}
+
+		K = I;
+	}
+
+	float4 color_base = tex2D(diffuseMap, Tex);
+	color_base.rgb *= 0.5 + 0.5 * K;
+	//return color_base;
+
+	float zn = StartFogDistance;
+	float zf = EndFogDistance;
+
+	if (PosView.z < zn)
+		return color_base;
+	else if (PosView.z > zf)
+	{
+		color_base = ColorFog;
+		return color_base;
+	}
+	else
+	{
+		// combino fog y textura
+		float1 total = zf - zn;
+		float1 resto = PosView.z - zn;
+		float1 proporcion = resto / total;
+		color_base = lerp(color_base, ColorFog, proporcion);
+		return color_base;
+	}
+
+}
+
 
 technique RenderScene
 {
@@ -204,11 +328,29 @@ technique RenderScene
     }
 }
 
+technique RenderSceneLavaFog
+{
+	pass p0
+	{
+		VertexShader = compile vs_3_0 VertScene();
+		PixelShader = compile ps_3_0 PixSceneLavaFog();
+	}
+}
+
 technique RenderSceneLava
 {
 	pass p0
 	{
 		VertexShader = compile vs_3_0 VertScene();
 		PixelShader = compile ps_3_0 PixSceneLava();
+	}
+}
+
+technique RenderSceneFog
+{
+	pass p0
+	{
+		VertexShader = compile vs_3_0 VertScene();
+		PixelShader = compile ps_3_0 PixSceneFog();
 	}
 }
