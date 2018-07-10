@@ -34,13 +34,13 @@ namespace TGC.Group.Modelo
             this.drawer = drawer;
             tiempoInforme = tiempoInformeMaximo;
         }
-        public void informar(EstadoJuego estado,Personaje personaje, float ElapsedTime)
+        public void renderizarInforme(EstadoJuego estado,Personaje personaje, float ElapsedTime)
         {
             var mensaje = "";
 
             renderizarControles();
             //renderizarDebug();
-            drawer.drawText((estado.godMode ? "GOD MODE: ON" : ""), (int)(ScreenRes_X - 140f), 50, Color.Red);
+            drawer.drawText((personaje.godMode ? "GOD MODE: ON" : ""), (int)(ScreenRes_X - 140f), 50, Color.Red);
 
             if(checkpoint)
             {

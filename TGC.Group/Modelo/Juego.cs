@@ -17,6 +17,8 @@ using TGC.Core.Collision;
 using TGC.Core.Shaders;
 using TGC.Core.Text;
 using TGC.Core.Particle;
+using TGC.Core.Geometry;
+using TGC.Core.Fog;
 
 using TGC.Group.SphereCollisionUtils;
 using TGC.Group.Modelo.Rampas;
@@ -40,12 +42,13 @@ namespace TGC.Group.Modelo
             mediaDir = amediaDir;
         }
 
+        private float danioLava = 0.009f;
+
         static string mediaDir;
         private Directorio directorio;
         private Informador informador;
         private Escenario escenario;
-        private EstadoJuego estadoJuego;
-
+        public EstadoJuego estadoJuego;
         public static Octree octree;
         public static SoundManager soundManager;
 
@@ -66,15 +69,11 @@ namespace TGC.Group.Modelo
 
         private bool boundingBoxActivate = false;
 
+        TGCVector3 caidaCajas = new TGCVector3(0f, -8f, 0f);
 
 
-        public static List<TgcMesh> meshesConLuz;
-        private Microsoft.DirectX.Direct3D.Effect effectLuzComun;
-        private Microsoft.DirectX.Direct3D.Effect effectLuzLava;
-        private Microsoft.DirectX.Direct3D.Effect personajeLightShader;
-
-        private Microsoft.DirectX.Direct3D.Effect olasLava;
-
+        private TgcFog fog;
+        private bool NieblaActivada = true;
 
         #region Personaje
         private Personaje personaje;
@@ -89,11 +88,11 @@ namespace TGC.Group.Modelo
         private bool partidaReiniciada= false;
         #endregion
 
-
         #region APIGUI
         //Api gui
-        private DXGui gui_primaria = new DXGui();
-        private DXGui gui_secundaria = new DXGui();
+        private DXGui gui_menu_principal = new DXGui();
+        private DXGui gui_partida_perdida = new DXGui();
+        private DXGui gui_partida_ganada = new DXGui();
 
         public const int IDOK = 0;
 
@@ -107,8 +106,7 @@ namespace TGC.Group.Modelo
 
         public bool msg_box_app_exit = false;
         public bool profiling = false;
-
-        //private Microsoft.DirectX.Direct3D.Effect effect;
+        
         public struct POINTAPI
         {
             public Int32 x;
@@ -143,27 +141,36 @@ namespace TGC.Group.Modelo
         }
         #endregion
 
-        float ScreenRes_X;
-        float ScreenRes_Y;
-
         #region Sprites
         public CustomSprite barraDeVida;
         public CustomSprite fruta;
         public CustomSprite mascara;
         public CustomSprite hoguera;
+        public CustomSprite pauseSprite;
+        public CustomSprite soundOnSprite;
+        public CustomSprite soundOffSprite;
+        public CustomSprite cajaSprite;
         //public CustomSprite sonido;
         public Drawer2D drawer2D;
         public TgcText2D textoFrutas;
         public TgcText2D textoMascaras;
         public TgcText2D textoSonido;
         public TgcText2D textoHoguera;
+        public TgcText2D textoCajas;
+        
         #endregion
 
         #region Camara
         private TgcThirdPersonCamera camaraInterna;
         private float cameraOffsetHeight = 400;
         private float cameraOffsetForward = -800;
-        private TGCVector3 traslacionFrustum = new TGCVector3(0f, -0, -2800f);
+        private TGCVector3 traslacionFrustum = new TGCVector3(0f, 0f, -2400f);
+        #endregion
+
+        #region Resolucion
+
+        float ScreenRes_X;
+        float ScreenRes_Y;
         #endregion
 
         //Debug -> Hay que borrar estas variables
@@ -171,34 +178,58 @@ namespace TGC.Group.Modelo
         private TGCVector3 movimientoRealCaja = TGCVector3.Empty;
         //TGCVector3 movimientoPorPlataforma = new TGCVector3(0, 0, 0);
 
-        float coeficienteDiferencialGlobal = 0f;
         TGCVector3 verticeMasAltoGlobal = new TGCVector3(0, 0, 0);
-        bool colisionRampa = false;
+       
         TGCVector3 vectorDiferenciaGlobal = new TGCVector3(0, 0, 0);
-        float YPorDesnivelGlobal = 0f;
-        float longitudRampaGlobal = 0f;
-        float alturaRampaGlobal = 0f;
+
+        
         #endregion
 
         
 
         Random generadorRandom = new Random(); //Generador de numeros aleatorios;
 
+        private int cant_pasadas = 2;
 
+        public static List<TgcMesh> meshesConLuz;
+        private Microsoft.DirectX.Direct3D.Effect effectLuzComun;
+        private Microsoft.DirectX.Direct3D.Effect effectLuzLava;
+        private Microsoft.DirectX.Direct3D.Effect personajeLightShader;
+
+        private Microsoft.DirectX.Direct3D.Effect postProcessBloom;
+
+        private Microsoft.DirectX.Direct3D.Effect PersonajeEffect;
+
+        private Surface g_pDepthStencil; // Depth-stencil buffer
+        private Texture g_pRenderTarget, g_pGlowMap, g_pRenderTarget4, g_pRenderTarget4Aux;
+        private VertexBuffer g_pVBV3D;
+        Microsoft.DirectX.Direct3D.Device d3dDevice;
+
+        private readonly int SHADOWMAP_SIZE = 1024;
+        private Microsoft.DirectX.Direct3D.Effect efectoShadow;
+        private TGCVector3 g_LightDir; // direccion de la luz actual
+        private TGCVector3 g_LightPos; // posicion de la luz actual (la que estoy analizando)
+        private TGCMatrix g_LightView; // matriz de view del light
+        private TGCMatrix g_mShadowProj; // Projection matrix for shadow map
+        private Surface g_pDSShadow; // Depth-stencil buffer for rendering to shadow map
+
+        private Texture g_pShadowMap; // Texture to which the shadow map is rendered
+
+        
+        private float tiempoActual;
+       // private float tiempoDeInvencibilidad = 20f; //Para desarrollo
+        private float tiempoDeInvencibilidad = 4f;
         public override void Init()
         {
             //Device de DirectX para crear primitivas.
-            var d3dDevice = D3DDevice.Instance.Device;
-            
-            
-            
+            d3dDevice = D3DDevice.Instance.Device;
             ScreenRes_X = d3dDevice.PresentationParameters.BackBufferWidth;
             ScreenRes_Y = d3dDevice.PresentationParameters.BackBufferHeight;
             
             directorio = new Directorio(MediaDir);
             Hoguera.texturesPath = directorio.TexturasPath;
-            FuegoLuz.texturesPath = directorio.TexturasPath; ;
-            Personaje.texturesPath = directorio.TexturasPath; ;
+            FuegoLuz.texturesPath = directorio.TexturasPath; 
+            Personaje.texturesPath = directorio.TexturasPath; 
             //Cargo el SoundManager
             soundManager = new SoundManager(directorio, this.DirectSound.DsDevice);
             soundManager.playSonidoFondo();
@@ -210,7 +241,7 @@ namespace TGC.Group.Modelo
                 personaje = new Personaje(directorio);
                 estadoJuego = new EstadoJuego();
                 escenario = new Escenario(directorio.EscenaCrash, personaje);
-
+                inicializarFog();
             }
             else
             {
@@ -219,8 +250,7 @@ namespace TGC.Group.Modelo
                 estadoJuego.reiniciar();
                 
             }
-            
-            
+
             //Le cambiamos la textura para diferenciarlo un poco
             personaje.changeDiffuseMaps(new[]
             {
@@ -241,48 +271,148 @@ namespace TGC.Group.Modelo
             //Configuro donde esta la posicion de la camara y hacia donde mira.
             Camara = camaraInterna;
 
-            
-
-            var meshesSinPlatXZ = escenario.scene.Meshes.FindAll(mesh => mesh.Name != "PlataformaX" && mesh.Name != "PlataformaZ");
 
             octree = new Octree();
-            octree.create(meshesSinPlatXZ, escenario.BoundingBox());
+            octree.create(escenario.scene.Meshes, escenario.BoundingBox());
             octree.createDebugOctreeMeshes();// --> Para renderizar las "cajas" que genera
 
-            Frustum.Color = Color.Black;
+            Frustum.Color = fog.Color;
 
 
             inicializarGUIPrincipal();
             inicializarGUISecundaria();
+            inicializarGUITerciaria();
             inicializarIluminacion();
-            inicializarHUDS(d3dDevice);
-
+            inicializarSprites(d3dDevice);
 
             
-
             string compilationErrors;
-            olasLava = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
+            //olasLavaEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "OlasLava.fx",
+            //    null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            //if (olasLavaEffect == null)
+            //{
+            //    throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
+            //}
+
+            PersonajeEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, MediaDir + "PersonajeShader.fx",
                 null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
-            if (olasLava == null)
+            if (PersonajeEffect == null)
             {
-                throw new Exception("Error al cargar shader OlasLava. Errores: " + compilationErrors);
+                throw new Exception("Error al cargar shader Rojo. Errores: " + compilationErrors);
             }
 
-            foreach (TgcMesh mesh in escenario.MeshesParaEfectoLava())
+            postProcessBloom = Microsoft.DirectX.Direct3D.Effect.FromFile(D3DDevice.Instance.Device, MediaDir + "GaussianBlur.fx", null, null, ShaderFlags.PreferFlowControl, null, out compilationErrors);
+            if (postProcessBloom == null)
             {
-                mesh.Effect = olasLava;
-                mesh.Technique = "Olas";
+                throw new Exception("Error al cargar shader postProcessBloom. Errores: " + compilationErrors);
             }
 
-            olasLava.SetValue("screen_dx", ScreenRes_X);
-            olasLava.SetValue("screen_dy", ScreenRes_Y);
-           
+            personaje.personajeMesh.Effect = PersonajeEffect;
+            //personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+            //personaje.personajeMesh.Technique = "Arcoiris";
+
+            //foreach (TgcMesh mesh in escenario.LavaMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
+
+            //foreach (TgcMesh mesh in escenario.FuegosMesh())
+            //{
+            //    mesh.Effect = olasLavaEffect;
+            //    mesh.Technique = "Olas";
+            //}
+
+            postProcessBloom.Technique = "DefaultTechnique";
+
+            g_pDepthStencil = d3dDevice.CreateDepthStencilSurface(d3dDevice.PresentationParameters.BackBufferWidth, d3dDevice.PresentationParameters.BackBufferHeight,
+                DepthFormat.D24S8, MultiSampleType.None, 0, true);
+
+            // inicializo el render target
+            g_pRenderTarget = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth, d3dDevice.PresentationParameters.BackBufferHeight, 1, Usage.RenderTarget,
+                Format.X8R8G8B8, Pool.Default);
+
+            g_pGlowMap = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth, d3dDevice.PresentationParameters.BackBufferHeight, 1, Usage.RenderTarget,
+                Format.X8R8G8B8, Pool.Default);
+
+            g_pRenderTarget4 = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth / 4, d3dDevice.PresentationParameters.BackBufferHeight / 4, 1, Usage.RenderTarget,
+                Format.X8R8G8B8, Pool.Default);
+
+            g_pRenderTarget4Aux = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth / 4, d3dDevice.PresentationParameters.BackBufferHeight / 4, 1, Usage.RenderTarget,
+                Format.X8R8G8B8, Pool.Default);
+
+            postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget);
+
+            // Resolucion de pantalla
+            postProcessBloom.SetValue("screen_dx", ScreenRes_X);
+            postProcessBloom.SetValue("screen_dy", ScreenRes_Y);
+            //olasLavaEffect.SetValue("screen_dx", ScreenRes_X);
+            //olasLavaEffect.SetValue("screen_dy", ScreenRes_Y);
+
+            CustomVertex.PositionTextured[] vertices =
+            {
+                new CustomVertex.PositionTextured(-1, 1, 1, 0, 0),
+                new CustomVertex.PositionTextured(1, 1, 1, 1, 0),
+                new CustomVertex.PositionTextured(-1, -1, 1, 0, 1),
+                new CustomVertex.PositionTextured(1, -1, 1, 1, 1)
+            };
+            //vertex buffer de los triangulos
+            g_pVBV3D = new VertexBuffer(typeof(CustomVertex.PositionTextured), 4, d3dDevice, Usage.Dynamic | Usage.WriteOnly, CustomVertex.PositionTextured.Format, Pool.Default);
+            g_pVBV3D.SetData(vertices, 0, LockFlags.None);
+
+
+            efectoShadow = TgcShaders.loadEffect(directorio.ShadowMap);
+
+            // Creo el shadowmap.
+            // Format.R32F
+            // Format.X8R8G8B8
+            g_pShadowMap = new Texture(D3DDevice.Instance.Device, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 1, Usage.RenderTarget, Format.R32F, Pool.Default);
+
+            // tengo que crear un stencilbuffer para el shadowmap manualmente
+            // para asegurarme que tenga el mismo tamano que el shadowmap, y que no tenga
+            // multisample, etc etc.
+            g_pDSShadow = D3DDevice.Instance.Device.CreateDepthStencilSurface(SHADOWMAP_SIZE, SHADOWMAP_SIZE, DepthFormat.D24S8, MultiSampleType.None, 0, true);
+            // por ultimo necesito una matriz de proyeccion para el shadowmap, ya
+            // que voy a dibujar desde el pto de vista de la luz.
+            // El angulo tiene que ser mayor a 45 para que la sombra no falle en los extremos del cono de luz
+            // de hecho, un valor mayor a 90 todavia es mejor, porque hasta con 90 grados es muy dificil
+            // lograr que los objetos del borde generen sombras
+            var aspectRatio = D3DDevice.Instance.AspectRatio;
+            g_mShadowProj = TGCMatrix.PerspectiveFovLH(Geometry.DegreeToRadian(80), aspectRatio, 50, 5000);
+             D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(Geometry.DegreeToRadian(45.0f), aspectRatio, 2f, 4000f).ToMatrix();
+
+
+            efectoShadow.SetValue("screen_dx", ScreenRes_X);
+            efectoShadow.SetValue("screen_dy", ScreenRes_Y);
+
             //Configurar animacion inicial
             personaje.playAnimation("Parado", true);
+
+            efectoShadow.SetValue("ColorFog", fog.Color.ToArgb());
+            efectoShadow.SetValue("StartFogDistance", fog.StartDistance);
+            efectoShadow.SetValue("EndFogDistance", fog.EndDistance);
+            efectoShadow.SetValue("Density", fog.Density);
+
         }
 
+        //PersonajeEffect:
+        //Para ningun efecto: personaje.personajeMesh.Technique = "DIFFUSE_MAP"; 
+        //Para efecto arcoiris: personaje.personajeMesh.Technique = "Arcoiris"; 
 
-           
+        private void inicializarFog()
+        {
+            fog = new TgcFog();
+            fog.Enabled = true;
+            fog.StartDistance = 3200;
+            fog.EndDistance = 4000;
+            fog.Density = 0.1f;
+            fog.Color = (NieblaActivada ? Color.LightGray : Color.Black);
+
+            if (fog.Enabled)
+            {
+                fog.updateValues();
+            }
+        }
 
 
         public override void Update()
@@ -324,7 +454,10 @@ namespace TGC.Group.Modelo
             if (Input.keyPressed(Key.F))boundingBoxActivate = !boundingBoxActivate;
 
             //Activo y desactivo Modo Dios
-            if (Input.keyPressed(Key.I)) estadoJuego.godMode = !estadoJuego.godMode;
+            if (Input.keyPressed(Key.I))
+            {
+                personaje.godMode = !personaje.godMode;
+            }
 
             if (Input.keyPressed(Key.Z)) soundManager.actualizarEstado();
 
@@ -338,21 +471,13 @@ namespace TGC.Group.Modelo
             if (!estadoJuego.partidaPausada && !estadoJuego.partidaPerdida)
             {
                
-                if (Input.keyDown(Key.R)) solicitudInteraccionConCaja = true;
-                else solicitudInteraccionConCaja = false;
-
-                if (Input.keyDown(Key.Q))personaje.kicking = true;
-                else personaje.kicking = false;
-
-                if (personaje.VELOCIDAD_EXTRA > 0) personaje.running = true;
-                else personaje.running = false;
-
+               
 
                 #region Salto
                 // Para que no se pueda saltar cuando agarras algun objeto
                 if (!solicitudInteraccionConCaja)
                 {
-                    if (Input.keyUp(Key.Space) && saltoActual < coeficienteSalto && (doubleJump > 0 || estadoJuego.godMode))
+                    if (Input.keyUp(Key.Space) && saltoActual < coeficienteSalto && (doubleJump > 0 || personaje.godMode))
                     {
                         saltoActual = coeficienteSalto;
                         doubleJump -= 1;
@@ -370,10 +495,10 @@ namespace TGC.Group.Modelo
                 #endregion
 
                 #region Danio
-                if (escenario.personajeSobreLava() && !estadoJuego.godMode)
+                if (escenario.personajeSobreLava())
                 {
-                    soundManager.playSonidoDanio();
-                    escenario.quemarPersonaje();
+                   if(!personaje.godMode && !personaje.invencible) soundManager.playSonidoDanio();
+                    daniar(danioLava);
                 }
                 #endregion
 
@@ -399,11 +524,23 @@ namespace TGC.Group.Modelo
                 }
                 #endregion
 
+
+
+
                 #region Frutas
-                if (escenario.personajeSobreFruta())
+                TgcMesh fruta;
+                if ((fruta = escenario.obtenerFrutaColisionada()) != null) 
                 {
-                    personaje.aumentarFrutas();
-                    soundManager.playSonidoFruta();
+                    if (fruta.Name == "PODRIDA")
+                    {
+                        personaje.comerFrutaPodrida();
+                        soundManager.playSonidoDanio();
+                    }
+                    else
+                    {
+                        personaje.aumentarFrutas();
+                        soundManager.playSonidoFruta();
+                    }
                     escenario.eliminarFrutaColisionada();
                  }
                  textoFrutas.Text = personaje.frutas.ToString();
@@ -417,7 +554,20 @@ namespace TGC.Group.Modelo
                     personaje.aumentarMascaras();
                     soundManager.playSonidoMoneda();
                     escenario.eliminarMascaraColisionada();
+                    //personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+                    personaje.personajeMesh.Technique = "Arcoiris";
+                    personaje.invencible = true;
+                    tiempoActual = tiempoAcumulado;
                 }
+
+                if(tiempoAcumulado - tiempoActual > tiempoDeInvencibilidad)
+                {
+                    personaje.personajeMesh.Technique = "DIFFUSE_MAP";
+                    //personaje.personajeMesh.Technique = "Arcoiris";
+                    personaje.invencible = false;
+                }
+
+
                 textoMascaras.Text = personaje.mascaras.ToString();
 
 
@@ -433,20 +583,35 @@ namespace TGC.Group.Modelo
                 textoHoguera.Text = personaje.hogueras.ToString();
                 #endregion
 
+                #region Metas
+                if (escenario.colisionaConMeta()) estadoJuego.partidaGanada = true;
+                #endregion
+
                 #region Sonido
-                if (soundManager.sonido) textoSonido.Text = "Sound: on";
+                if (soundManager.estado_sonido) textoSonido.Text = "Sound: on";
                 else textoSonido.Text = "Sound: off";
                 #endregion
 
                 #region Movimientos
 
-                personaje.moving = personaje.rotar(Input,new Key());
+                personaje.moving = personaje.rotar(Input);
                 personaje.actualizarValores(ElapsedTime);
                 //Vector de movimiento
                 var movimientoOriginal = new TGCVector3(0,0,0);
                 float movX = 0;
                 float movY = saltoRealizado;
                 float movZ = 0;
+
+
+                if (Input.keyDown(Key.R)) solicitudInteraccionConCaja = true;
+                else solicitudInteraccionConCaja = false;
+
+                if (Input.keyDown(Key.Q)) personaje.kicking = true;
+                else personaje.kicking = false;
+
+                if (personaje.VELOCIDAD_EXTRA > 0 && personaje.moving) personaje.running = true;
+                else personaje.running = false;
+
 
                 if (personaje.moving)
                 {
@@ -482,7 +647,14 @@ namespace TGC.Group.Modelo
             }
             
         }
- 
+
+        public void daniar(float danio)
+        {
+            personaje.aumentarVida(-danio);
+
+        }
+
+        #region MovimientosMundo
         public void moverMundo(TGCVector3 movimientoOriginal)
         {
             TGCVector3 movimientoRealPersonaje = new TGCVector3(0, 0, 0);
@@ -501,9 +673,9 @@ namespace TGC.Group.Modelo
             if (plataformaRotante != null)
             {
                 movimientoRealPersonaje = colliderOBB.manageColisionEsferaOBB(personaje.esferaPersonaje, movimientoOriginal, plataformaRotante.OBB);
-                
-                personaje.matrizTransformacionPlataformaRotante = plataformaRotante.transform();
-                
+               /* personaje.matrizTransformacionPlataformaRotante = plataformaRotante.transform();                
+                personaje.esferaPersonaje.moveCenter(TGCVector3.Multiply(plataformaRotante.vRotacionOBB,tiempoAcumulado));*/
+
             }
             else
             {
@@ -524,7 +696,7 @@ namespace TGC.Group.Modelo
             personaje.transformar();
             //personaje.move(movimientoRealPersonaje);
         }
-       
+        TGCVector3 a;
         public TGCVector3 movimientoPorPlataformas()
         {
 
@@ -542,14 +714,12 @@ namespace TGC.Group.Modelo
 
             if (rampa == null || personaje.jumping)
             {
-                colisionRampa = false;
+               
                 ColisionadorEsferico.GravityEnabled = true;
                 return -1;
             }
             ColisionadorEsferico.GravityEnabled = false;
-
-            colisionRampa = true;
-
+            
             return rampa.obtenerAlturaInstantanea(personaje.position()) + personaje.esferaPersonaje.Radius;
 
         }
@@ -584,59 +754,52 @@ namespace TGC.Group.Modelo
         public void movimientoDePlataformas()
         {
             foreach (Plataforma plataforma in escenario.plataformas) plataforma.Update(tiempoAcumulado);
+            foreach (PlataformaRotante plataforma in escenario.plataformasRotantes) plataforma.Update(tiempoAcumulado);
         }
         public void movimientoDeCajas(TGCVector3 movimientoOriginal)
         {
             
             Caja cajaColisionante = escenario.obtenerColisionCajaPersonaje();
 
-            if (cajaColisionante != null) interaccionCaja = true;
-            else
+            if (cajaColisionante != null)
             {
-                interaccionCaja = false;
-                return;
+                cajaColisionante.afectar(personaje);
+                interaccionCaja = true;
+                if (cajaColisionante.esTNT() && (!personaje.godMode && !personaje.invencible)) soundManager.playSonidoDanio();
             }
-
-            cajaColisionante.afectar(personaje);
-            if (cajaColisionante.esTNT()) soundManager.playSonidoDanio();
+            textoCajas.Text = personaje.cajas.ToString();
             
-            
-            if (!solicitudInteraccionConCaja)
-            {
-                interaccionCaja = false;
-                return;
-            }
-            
-
-            if (cajaColisionante == objetoMovibleGlobal) cajaColisionante = null;
-
             //Si es una caja nueva updatea la referencia global
             if (cajaColisionante != null && cajaColisionante != objetoEscenario) objetoEscenario = cajaColisionante;
-
             if (objetoEscenario != null) generarMovimiento(objetoEscenario, movimientoOriginal);
+
         }
         public void generarMovimiento(Caja objetoMovible, TGCVector3 movimiento)
         {
             if (objetoMovibleGlobal == null || objetoMovibleGlobal != objetoMovible) objetoMovibleGlobal = objetoMovible;
 
-            esferaCaja = new TgcBoundingSphere(objetoMovible.boundingBox().calculateBoxCenter() + new TGCVector3(0f, 15f, 0f), objetoMovible.boundingBox().calculateBoxRadius() * 0.7f);
+            esferaCaja = new TgcBoundingSphere(objetoMovible.boundingBox().calculateBoxCenter() + new TGCVector3(0f, 15f, 0f), objetoMovible.boundingBox().calculateBoxRadius() * 0.65f);
 
             movimientoRealCaja = ColisionadorEsferico.moveCharacter(esferaCaja, movimiento,  escenario.MeshesColisionablesBBSin(objetoMovible.cajaMesh));
 
-            var testCol =personaje.colisionaConCaja(objetoMovible);
-            
+            var testCol = personaje.colisionaConCaja(objetoMovible);
+
             if (solicitudInteraccionConCaja && testCol)
             {
                 if (!escenario.colisionEscenario()) objetoMovible.Move(movimientoRealCaja);
                 else if (escenario.colisionConPilar() || personaje.colisionaConCaja(objetoMovible)) movimientoRealCaja = TGCVector3.Empty;
                 else objetoMovible.Move(-movimientoRealCaja);
-                
+
             }
-            else if (movimientoRealCaja.Y < 0) objetoMovible.Move(movimientoRealCaja);
+            else if (!escenario.colisionaConPiso(objetoMovibleGlobal.cajaMesh)) objetoMovibleGlobal.Move(caidaCajas);
+                
 
         }
-      
-       
+
+        
+
+        #endregion
+
         public void ajustarCamara()
         {
             //Actualizar valores de camara segun modifiers
@@ -688,102 +851,315 @@ namespace TGC.Group.Modelo
 
         public override void Render()
         {
-            PreRender();
-            if (estadoJuego.menu)gui_render(ElapsedTime);
+            if (estadoJuego.menu) gui_principal_render(ElapsedTime);
+            else if(estadoJuego.partidaGanada) gui_partida_ganada_render(ElapsedTime);
+            else if (estadoJuego.partidaPerdida) gui_partida_perdida_render(ElapsedTime);
             else
             {
+                Surface pSurf, pOldRT, pOldDS;
+                var modelosAnterior = octree.modelos;
+
+                
+
+                #region ShadowMap
+                g_LightPos = personaje.position() + new TGCVector3(-300f,400f,-300f);
+                g_LightDir = personaje.position() - g_LightPos;
+                g_LightDir.Normalize();
+
+              
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+
+                //Genero el shadow map
+                RenderShadowMap();
+
+                D3DDevice.Instance.Device.BeginScene();
+                // dibujo la escena pp dicha
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                RenderScene(false);
+
+                octree.modelos = modelosAnterior;
+                D3DDevice.Instance.Device.EndScene();
+
+
+                #endregion
+
+                #region Principales
+                
+                // guardo el Render target anterior y seteo la textura como render target
+                pOldRT = D3DDevice.Instance.Device.GetRenderTarget(0);
+                pSurf = g_pRenderTarget.GetSurfaceLevel(0);
+                D3DDevice.Instance.Device.SetRenderTarget(0, pSurf);
+                // hago lo mismo con el depthbuffer, necesito el que no tiene multisampling
+                pOldDS = D3DDevice.Instance.Device.DepthStencilSurface;
+                D3DDevice.Instance.Device.DepthStencilSurface = g_pDepthStencil;
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                //TODO
+
+                D3DDevice.Instance.Device.BeginScene();
+
+                //olasLavaEffect.SetValue("time", tiempoAcumulado);
+                PersonajeEffect.SetValue("time", tiempoAcumulado);
+                efectoShadow.SetValue("time", tiempoAcumulado);
+                efectoShadow.SetValue("CameraPos", TGCVector3.Vector3ToFloat4Array(Camara.Position));
+
                 Frustum.render();
-                olasLava.SetValue("time", tiempoAcumulado);
+                octree.render(Frustum, boundingBoxActivate);
+                renderizarSprites();
+               // renderizarDebug();
+                personaje.renderizarEmisorParticulas(ElapsedTime);
+                informador.renderizarInforme(estadoJuego, personaje, ElapsedTime);
 
-                //int factorY = rnd.Next(-6, 6);
-                //int factorX = rnd.Next(-6, 6);
-                //int frecuencia = rnd.Next(1, 11);
-
-                //olasLava.SetValue("factorY", factorY);
-                //olasLava.SetValue("factorX", factorX);
-                //olasLava.SetValue("frecuencia", frecuencia);
-
-
-                if (!estadoJuego.partidaPerdida)
-                {
-                    renderizarSprites();
-
-                    informador.informar(estadoJuego,personaje,ElapsedTime);
-
-                    renderizarDebug();
-                  //Renderizo OBB de las plataformas rotantes
-                    escenario.plataformasRotantes.ForEach(plat => plat.Render(tiempoAcumulado));
                     
-                    if (!estadoJuego.partidaPausada)
-                    {
-                        octree.render(Frustum, boundingBoxActivate);
-                        renderizarRestantes();
-                        personaje.animateAndRender(ElapsedTime);
-                        if (personaje.emisorParticulas != null)
-                        {
-                            personaje.emisorParticulas.Position = personaje.position();
-                            personaje.emisorParticulas.Speed= new TGCVector3(65, 20, 15);
-                            personaje.emisorParticulas.render(ElapsedTime);
-                        }
-                        escenario.RenderAll();
-
-                    }
-                    else DrawText.drawText("EN PAUSA", 500, 500, Color.Red);
-
-
-                    if (boundingBoxActivate)
-                    {
-                        personaje.boundingBox().Render();
-                        personaje.esferaPersonaje.Render();
-                        escenario.RenderizarBoundingBoxes();
-                    }
-
-
-                    TgcMesh closestLight = escenario.getClosestLight(personaje.position(), 2500f);
-                    if(closestLight != null)
-                    {
-                        personaje.effect().SetValue("lightColor", ColorValue.FromColor(Color.White));
-                        personaje.effect().SetValue("lightPosition", TGCVector3.Vector3ToFloat4Array(closestLight.Position));
-                        personaje.effect().SetValue("eyePosition", TGCVector3.Vector3ToFloat4Array(Camara.Position));
-                    }
-                    personaje.effect().SetValue("materialEmissiveColor", ColorValue.FromColor(Color.White));
-                    personaje.effect().SetValue("materialAmbientColor", ColorValue.FromColor(Color.FromArgb(50, 50, 50)));
-                    personaje.effect().SetValue("materialDiffuseColor", ColorValue.FromColor(Color.White));
-                    personaje.effect().SetValue("materialSpecularColor", ColorValue.FromColor(Color.DimGray));
-                    personaje.effect().SetValue("materialSpecularExp", 500f);
-
-                    personaje.effect().SetValue("lightIntensity", 20);
-                    personaje.effect().SetValue("lightAttenuation", 25);
-
-                    foreach(TgcMesh mesh in meshesConLuz)
-                    {
-                        //mesh.Effect.SetValue("lightPosition", TGCVector3.Vector3ToFloat4Array(luz.Position));
-                        mesh.Effect.SetValue("eyePosition", TGCVector3.Vector3ToFloat4Array(Camara.Position));
-                    }
-
-
-                    //EMIRSORES DE PARTICULAS
-                    D3DDevice.Instance.ParticlesEnabled = true;
-                    D3DDevice.Instance.EnableParticles();
-                    foreach(Hoguera s in escenario.hogueras)
-                    {
-                        s.renderParticles(ElapsedTime);
-                    }
-                    foreach (FuegoLuz s in escenario.fuegosLuz)
-                    {
-                        s.renderParticles(ElapsedTime);
-                    }
+                if (!estadoJuego.partidaPausada)
+                {
+                    personaje.animateAndRender(ElapsedTime);
                 }
                 else
                 {
-                    gui_partida_perdida_render(ElapsedTime);
+                    drawer2D.BeginDrawSprite();
+                    drawer2D.DrawSprite(pauseSprite);
+                    drawer2D.EndDrawSprite();
                 }
+                  
+
+
+                if (boundingBoxActivate)
+                {
+                    personaje.esferaPersonaje.Render();
+                    escenario.RenderizarBoundingBoxes();
+                }
+
+
+
+               
+
+                //Emisores de Particulas
+                D3DDevice.Instance.ParticlesEnabled = true;
+                D3DDevice.Instance.EnableParticles();
+                escenario.hogueras.ForEach(hoguera => hoguera.renderParticles(ElapsedTime));
+                escenario.fuegosLuz.ForEach(hoguera => hoguera.renderParticles(ElapsedTime));
+
+
+                D3DDevice.Instance.Device.EndScene();
+                #endregion
+
+                #region GlowMap
+                // dibujo el glow map
+
+
+                // DefaultTechnique no cambia nada de lo visible (Mientras KLum = 1)
+                postProcessBloom.Technique = "DefaultTechnique";
+                pSurf = g_pGlowMap.GetSurfaceLevel(0);
+                D3DDevice.Instance.Device.SetRenderTarget(0, pSurf);
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                D3DDevice.Instance.Device.BeginScene();
+
+
+                //Dibujamos SOLO los meshes que tienen glow brillantes
+                
+                octree.modelos = escenario.MeshesLuminosos();
+                octree.render(Frustum, boundingBoxActivate);
+
+                Dictionary<int, Microsoft.DirectX.Direct3D.Effect> meshEffect = new Dictionary<int, Microsoft.DirectX.Direct3D.Effect>();
+                Dictionary<int, string> meshTechnique = new Dictionary<int, string>();
+
+                List<TgcMesh> opacos = escenario.MeshesOpacos();
+                // El resto opacos
+                foreach (var m in opacos)
+                {
+                    meshEffect.Add(m.GetHashCode(), m.Effect);
+                    meshTechnique.Add(m.GetHashCode(), m.Technique);
+                    m.Effect = postProcessBloom;
+                    m.Technique = "DibujarObjetosOscuros";
+                }
+
+                octree.modelos = opacos;
+                octree.render(Frustum, boundingBoxActivate);
+
+                octree.modelos = modelosAnterior;
+
+                foreach (var m in opacos)
+                {
+                    Microsoft.DirectX.Direct3D.Effect e = null;
+                    string tec = "";
+                    meshEffect.TryGetValue(m.GetHashCode(), out e);
+                    meshTechnique.TryGetValue(m.GetHashCode(), out tec);
+                    m.Effect = e;
+                    m.Technique = tec;
+                }
+
+                escenario.plataformasRotantes.ForEach(plat => plat.Render(tiempoAcumulado));
+
+                D3DDevice.Instance.Device.EndScene();
+
+                pSurf.Dispose();
+                #endregion
+
+                #region Blur
+                // Hago un blur sobre el glow map
+                // 1er pasada: downfilter x 4
+                // -----------------------------------------------------
+                pSurf = g_pRenderTarget4.GetSurfaceLevel(0);
+                D3DDevice.Instance.Device.SetRenderTarget(0, pSurf);
+
+                D3DDevice.Instance.Device.BeginScene();
+                postProcessBloom.Technique = "DownFilter4";
+                D3DDevice.Instance.Device.VertexFormat = CustomVertex.PositionTextured.Format;
+                D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
+                postProcessBloom.SetValue("g_RenderTarget", g_pGlowMap);
+
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                postProcessBloom.Begin(FX.None);
+                postProcessBloom.BeginPass(0);
+                D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                postProcessBloom.EndPass();
+                postProcessBloom.End();
+                pSurf.Dispose();
+
+                D3DDevice.Instance.Device.EndScene();
+
+                D3DDevice.Instance.Device.DepthStencilSurface = pOldDS;
+
+                // Pasadas de blur
+                for (var P = 0; P < cant_pasadas; ++P)
+                {
+                    // Gaussian blur Horizontal
+                    // -----------------------------------------------------
+                    pSurf = g_pRenderTarget4Aux.GetSurfaceLevel(0);
+                    D3DDevice.Instance.Device.SetRenderTarget(0, pSurf);
+                    // dibujo el quad pp dicho :
+
+                    D3DDevice.Instance.Device.BeginScene();
+                    postProcessBloom.Technique = "GaussianBlurSeparable";
+                    D3DDevice.Instance.Device.VertexFormat = CustomVertex.PositionTextured.Format;
+                    D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
+                    postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget4);
+
+                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                    postProcessBloom.Begin(FX.None);
+                    postProcessBloom.BeginPass(0);
+                    D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                    postProcessBloom.EndPass();
+                    postProcessBloom.End();
+                    pSurf.Dispose();
+
+                    D3DDevice.Instance.Device.EndScene();
+
+                    pSurf = g_pRenderTarget4.GetSurfaceLevel(0);
+                    D3DDevice.Instance.Device.SetRenderTarget(0, pSurf);
+                    pSurf.Dispose();
+
+                    //  Gaussian blur Vertical
+                    // -----------------------------------------------------
+
+                    D3DDevice.Instance.Device.BeginScene();
+                    postProcessBloom.Technique = "GaussianBlurSeparable";
+                    D3DDevice.Instance.Device.VertexFormat = CustomVertex.PositionTextured.Format;
+                    D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
+                    postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget4Aux);
+
+                    D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                    postProcessBloom.Begin(FX.None);
+                    postProcessBloom.BeginPass(1);
+                    D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                    postProcessBloom.EndPass();
+                    postProcessBloom.End();
+
+                    D3DDevice.Instance.Device.EndScene();
+                }
+
+                //  To Gray Scale
+                // -----------------------------------------------------
+                // Ultima pasada vertical va sobre la pantalla pp dicha
+                D3DDevice.Instance.Device.SetRenderTarget(0, pOldRT);
+                //pSurf = g_pRenderTarget4Aux.GetSurfaceLevel(0);
+                //device.SetRenderTarget(0, pSurf);
+
+                D3DDevice.Instance.Device.BeginScene();
+
+                postProcessBloom.Technique = "GrayScale";
+                D3DDevice.Instance.Device.VertexFormat = CustomVertex.PositionTextured.Format;
+                D3DDevice.Instance.Device.SetStreamSource(0, g_pVBV3D, 0);
+                postProcessBloom.SetValue("g_RenderTarget", g_pRenderTarget);
+                postProcessBloom.SetValue("g_GlowMap", g_pRenderTarget4Aux);
+                D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+                postProcessBloom.Begin(FX.None);
+                postProcessBloom.BeginPass(0);
+                D3DDevice.Instance.Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                postProcessBloom.EndPass();
+                postProcessBloom.End();
+
+                D3DDevice.Instance.Device.EndScene();
+
+                #endregion
+
+
+                D3DDevice.Instance.Device.BeginScene();
+                RenderFPS();
+                RenderAxis();
+                D3DDevice.Instance.Device.EndScene();
+                D3DDevice.Instance.Device.Present();
             }
-           
-            //Finaliza el render y presenta en pantalla, al igual que el preRender se debe para casos puntuales es mejor utilizar a mano las operaciones de EndScene y PresentScene
-            PostRender();
         }
-        private void renderizarRestantes() => escenario.plataformas.ForEach(plat => { if (plat.plataformaMesh.Name == "PlataformaX" || plat.plataformaMesh.Name == "PlataformaZ") plat.plataformaMesh.Render(); });
+
+        public void RenderShadowMap()
+        {
+            // Calculo la matriz de view de la luz
+            efectoShadow.SetValue("g_vLightPos", new TGCVector4(g_LightPos.X, g_LightPos.Y, g_LightPos.Z, 1));
+            efectoShadow.SetValue("g_vLightDir", new TGCVector4(g_LightDir.X, g_LightDir.Y, g_LightDir.Z, 1));
+            g_LightView = TGCMatrix.LookAtLH(g_LightPos, g_LightPos + g_LightDir, new TGCVector3(0, 0, 1));
+
+            // inicializacion standard:
+            efectoShadow.SetValue("g_mProjLight", g_mShadowProj.ToMatrix());
+            efectoShadow.SetValue("g_mViewLightProj", (g_LightView * g_mShadowProj).ToMatrix());
+
+            // Primero genero el shadow map, para ello dibujo desde el pto de vista de luz
+            // a una textura, con el VS y PS que generan un mapa de profundidades.
+            var pOldRT = D3DDevice.Instance.Device.GetRenderTarget(0);
+            var pShadowSurf = g_pShadowMap.GetSurfaceLevel(0);
+            D3DDevice.Instance.Device.SetRenderTarget(0, pShadowSurf);
+            var pOldDS = D3DDevice.Instance.Device.DepthStencilSurface;
+            D3DDevice.Instance.Device.DepthStencilSurface = g_pDSShadow;
+            D3DDevice.Instance.Device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, fog.Color, 1.0f, 0);
+            D3DDevice.Instance.Device.BeginScene();
+
+            // Hago el render de la escena pp dicha
+            efectoShadow.SetValue("g_txShadow", g_pShadowMap);
+            RenderScene(true);
+            // Termino
+            D3DDevice.Instance.Device.EndScene();
+
+            // restuaro el render target y el stencil
+            D3DDevice.Instance.Device.DepthStencilSurface = pOldDS;
+            D3DDevice.Instance.Device.SetRenderTarget(0, pOldRT);
+        }
+
+        public void RenderScene(bool shadow)
+        {
+            List<TgcMesh> meshes = escenario.scene.Meshes;
+            meshes.ForEach(mesh =>
+            {
+                if (shadow) mesh.Technique = "RenderShadow";
+                else
+                {
+                    if(mesh.Layer == "LAVA" || mesh.Layer == "FUEGO")
+                    {
+                        mesh.Technique = (NieblaActivada ? "RenderSceneLavaFog" : "RenderSceneLava");
+                        //para activar niebla: "RenderSceneLavaFog"
+                    }
+                    else
+                    {
+                        mesh.Technique = (NieblaActivada ? "RenderSceneFog" : "RenderScene");
+                        //para activar niebla: "RenderSceneFog"
+                    }
+                }
+                    mesh.Effect = efectoShadow;
+            });
+           
+              octree.modelos = meshes;
+              octree.render(Frustum, boundingBoxActivate);
+        }
+
         private void renderizarSprites()
         {
             drawer2D.BeginDrawSprite();
@@ -791,40 +1167,53 @@ namespace TGC.Group.Modelo
             drawer2D.DrawSprite(fruta);
             drawer2D.DrawSprite(mascara);
             drawer2D.DrawSprite(hoguera);
+            drawer2D.DrawSprite(cajaSprite);
+
+            if (soundManager.estado_sonido) drawer2D.DrawSprite(soundOnSprite);
+            else drawer2D.DrawSprite(soundOffSprite);
+
             drawer2D.EndDrawSprite();
 
             textoFrutas.render();
             textoMascaras.render();
-            textoSonido.render();
+            //textoSonido.render();
             textoHoguera.render();
+            textoCajas.render();
 
         }
         private void renderizarDebug()
         {
-            DrawText.drawText("Posicion Actual: " + personaje.position() + "\n"
-                              // + "Vector Movimiento Real Personaje: " + movimientoRealPersonaje + "\n"
-                               + "Colision con Caja: " + interaccionCaja + "\n"
-                               + "Solicitud interaccion con caja: " + solicitudInteraccionConCaja + "\n"
-                               + "Moving: " + personaje.moving + "\n"
-                               + "Jumping: " + personaje.jumping + "\n"
-                               + "Sliding: " + personaje.sliding + "\n"
-                               + "Kicking: " + personaje.kicking + "\n"
-                               + "Elapsed Time: " + ElapsedTime +"\n"
-                              /* + "Colision Con Rampa: " + colisionRampa + "\n"
-                               + "Vertice mas alto: " + verticeMasAltoGlobal + "\n"
-                               + "Vector diferencia: " + vectorDiferenciaGlobal + "\n"
-                               + "Y Por desnivel: " + YPorDesnivelGlobal + "\n"
-                               + "Longitud Rampa: " + longitudRampaGlobal + "\n"
-                               + "Altura Rampa: " + alturaRampaGlobal + "\n"
-                               + "Posicion bounding box: " + personaje.boundingBox().calculateBoxCenter() + "\n"
-                               + "Coeficiente Diferencial: " + coeficienteDiferencialGlobal + "\n"
-                               /*+ "Vector Movimiento Relativo Personaje" + movimientoRelativoPersonaje + "\n"
-                               + "Vector Movimiento Real Caja" + movimientoRealCaja + "\n"
-                               + "Interaccion Con Caja: " + interaccionConCaja + "\n"
-                               + "Colision Plataforma: " + colisionPlataforma + "\n"
-                               /*+ "Movimiento por plataforma: " + movimientoPorPlataforma*/, 0, 600, Color.GhostWhite);
+           /* DrawText.drawText("Matriz Rotacion: " + personaje.matrizTransformacionPlataformaRotante + "\n"
+
+
+                               /*"Posicion Actual: " + personaje.position() + "\n"
+                                             // + "Vector Movimiento Real Personaje: " + movimientoRealPersonaje + "\n"
+                                              + "Colision con Caja: " + interaccionCaja + "\n"
+                                              + "Solicitud interaccion con caja: " + solicitudInteraccionConCaja + "\n"
+                                              + "Moving: " + personaje.moving + "\n"
+                                              + "Jumping: " + personaje.jumping + "\n"
+                                              + "Sliding: " + personaje.sliding + "\n"
+                                              + "Kicking: " + personaje.kicking + "\n"
+                                              + "Elapsed Time: " + ElapsedTime +"\n"*/
+                               /* + "Colision Con Rampa: " + colisionRampa + "\n"
+                                + "Vertice mas alto: " + verticeMasAltoGlobal + "\n"
+                                + "Vector diferencia: " + vectorDiferenciaGlobal + "\n"
+                                + "Y Por desnivel: " + YPorDesnivelGlobal + "\n"
+                                + "Longitud Rampa: " + longitudRampaGlobal + "\n"
+                                + "Altura Rampa: " + alturaRampaGlobal + "\n"
+                                + "Posicion bounding box: " + personaje.boundingBox().calculateBoxCenter() + "\n"
+                                + "Coeficiente Diferencial: " + coeficienteDiferencialGlobal + "\n"
+                                /*+ "Vector Movimiento Relativo Personaje" + movimientoRelativoPersonaje + "\n"
+                                + "Vector Movimiento Real Caja" + movimientoRealCaja + "\n"
+                                + "Interaccion Con Caja: " + interaccionConCaja + "\n"
+                                + "Colision Plataforma: " + colisionPlataforma + "\n"
+                                /*+ "Movimiento por plataforma: " + movimientoPorPlataforma, 100, 400, Color.GhostWhite);
+            /*DrawText.drawText("vector Rotacion: " + a + "\n"
+                                + "posicion BoundingBox: " + personaje.boundingBox().Position + "\n"
+                                 + "posicion esfera: " + personaje.esferaPersonaje.Position + "\n"
+
+                , 400, 400, Color.GhostWhite);*/
         }
-        
 
         /// <summary>
         ///     Se llama cuando termina la ejecución del ejemplo.
@@ -847,10 +1236,10 @@ namespace TGC.Group.Modelo
         public void inicializarGUIPrincipal()
         {
             // levanto el GUI
-            gui_primaria.Create(MediaDir);
+            gui_menu_principal.Create(MediaDir);
                         
             // menu principal
-            gui_primaria.InitDialog(false,false);
+            gui_menu_principal.InitDialog(false,false);
             int W = D3DDevice.Instance.Width;
             int H = D3DDevice.Instance.Height;
             int x0 = 70;
@@ -859,11 +1248,11 @@ namespace TGC.Group.Modelo
             int dy2 = dy;
             int dx = 400;
             int item_epsilon = 50;
-            gui_primaria.InsertImage("menu.png",1850,450, directorio.Menu);
+            gui_menu_principal.InsertImage("menu.png",1850,450, directorio.Menu);
             
-            gui_primaria.InsertMenuItem(ID_JUGAR, "Jugar", "open.png", x0, y0, MediaDir, dx, dy);
-            gui_primaria.InsertMenuItem(ID_CONFIGURAR, "Configurar", "navegar.png", x0+dx+item_epsilon, y0 , MediaDir, dx, dy);
-            gui_primaria.InsertMenuItem(ID_APP_EXIT, "Salir", "salir.png", x0, y0 += dy2, MediaDir, dx, dy);
+            gui_menu_principal.InsertMenuItem(ID_JUGAR, "Jugar", "open.png", x0, y0, MediaDir, dx, dy);
+            gui_menu_principal.InsertMenuItem(ID_CONFIGURAR, "Configurar", "navegar.png", x0+dx+item_epsilon, y0 , MediaDir, dx, dy);
+            gui_menu_principal.InsertMenuItem(ID_APP_EXIT, "Salir", "salir.png", x0, y0 += dy2, MediaDir, dx, dy);
            
         }
 
@@ -879,20 +1268,71 @@ namespace TGC.Group.Modelo
             int y0 = (int)((H - dy) / 2);
             int r = 100;
 
-            gui_secundaria.Create(MediaDir);
-            gui_secundaria.InitDialog(false, false);
-            gui_secundaria.InsertImage("menu_perdiste.png", 1850, 450, directorio.Menu);
+            gui_partida_perdida.Create(MediaDir);
+            gui_partida_perdida.InitDialog(false, false);
+            gui_partida_perdida.InsertImage("menu_perdiste.png", 1850, 450, directorio.Menu);
 
-            gui_secundaria.InsertFrame("Partida Perdida", x0, y0, dx, dy, Color.FromArgb(0, 0, 0));
-            gui_secundaria.InsertItem("Desea reiniciar el juego?", x0 + 200, y0 + 200);
-            gui_secundaria.InsertCircleButton(0, "OK", "ok.png", x0 + 70, y0 + dy - r - 90, mediaDir, r);
-            gui_secundaria.InsertCircleButton(1, "CANCEL", "cancel.png", x0 + dx - r - 70, y0 + dy - r - 90, mediaDir, r);
+            gui_partida_perdida.InsertFrame("Partida Perdida", x0, y0, dx, dy, Color.FromArgb(0, 0, 0));
+            gui_partida_perdida.InsertItem("Desea reiniciar el juego?", x0 + 200, y0 + 200);
+            gui_partida_perdida.InsertCircleButton(0, "OK", "ok.png", x0 + 70, y0 + dy - r - 90, mediaDir, r);
+            gui_partida_perdida.InsertCircleButton(1, "CANCEL", "cancel.png", x0 + dx - r - 70, y0 + dy - r - 90, mediaDir, r);
 
         }
 
+        public void inicializarGUITerciaria()
+        {
+            float W = D3DDevice.Instance.Width;
+            float H = D3DDevice.Instance.Height;
+
+            int dx = (int)(700.0f);
+            int dy = (int)(450.0f);
+            int x0 = (int)((W - dx) / 2);
+            int y0 = (int)((H - dy) / 2);
+            int r = 100;
+
+            gui_partida_ganada.Create(MediaDir);
+            gui_partida_ganada.InitDialog(false, false);
+            gui_partida_ganada.InsertImage("menu_partida_ganada.jpg", 1850, 450, directorio.Menu);
+
+            gui_partida_ganada.InsertFrame("Partida Ganada", x0, y0, dx, dy, Color.FromArgb(0, 0, 0));
+            gui_partida_ganada.InsertCircleButton(0, "OK", "ok.png", x0 + 70, y0 + dy - r - 90, mediaDir, r);
+        }
+
+
+        public void gui_partida_ganada_render(float elapsedTime)
+        {
+            PreRender();
+            GuiMessage mensaje_gui = gui_partida_ganada.Update(elapsedTime, Input);
+            soundManager.pauseSonidos();
+
+            // proceso el msg
+            switch (mensaje_gui.message)
+            {
+                case MessageType.WM_COMMAND:
+                    switch (mensaje_gui.id)
+                    {
+                        case IDOK:
+                            System.Windows.Forms.Application.Exit(); ;
+                            break;
+                        case IDCANCEL:
+                            System.Windows.Forms.Application.Exit();
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            gui_partida_ganada.Render();
+            PostRender();
+        }
         public void gui_partida_perdida_render(float elapsedTime)
         {
-            GuiMessage mensaje_gui = gui_secundaria.Update(elapsedTime, Input);
+            PreRender();
+            GuiMessage mensaje_gui = gui_partida_perdida.Update(elapsedTime, Input);
             soundManager.pauseSonidos();
 
             // proceso el msg
@@ -917,13 +1357,14 @@ namespace TGC.Group.Modelo
                     break;
             }
 
-            gui_secundaria.Render();
+            gui_partida_perdida.Render();
+            PostRender();
         }
 
-        public void gui_render(float elapsedTime)
+        public void gui_principal_render(float elapsedTime)
         {
-            // ------------------------------------------------
-            GuiMessage mensaje_gui = gui_primaria.Update(elapsedTime, Input);
+            PreRender();
+            GuiMessage mensaje_gui = gui_menu_principal.Update(elapsedTime, Input);
             
             
             // proceso el msg
@@ -936,7 +1377,7 @@ namespace TGC.Group.Modelo
 
                         case IDCANCEL:
                             // Resultados OK, y CANCEL del ultimo messagebox
-                            gui_primaria.EndDialog();
+                            gui_menu_principal.EndDialog();
                             profiling = false;
                             if (msg_box_app_exit)
                             {
@@ -961,7 +1402,7 @@ namespace TGC.Group.Modelo
                             break;*/
 
                         case ID_APP_EXIT:
-                            gui_primaria.Menu_Exit("Desea Salir del Juego?",directorio.Menu, "Crash Bandicoot");
+                            gui_menu_principal.Menu_Exit("Desea Salir del Juego?",directorio.Menu, "Crash Bandicoot");
                             msg_box_app_exit = true;
                             break;
 
@@ -973,7 +1414,8 @@ namespace TGC.Group.Modelo
                 default:
                     break;
             }
-            gui_primaria.Render();
+            gui_menu_principal.Render();
+            PostRender();
         }
         #endregion
 
@@ -982,11 +1424,12 @@ namespace TGC.Group.Modelo
             meshesConLuz = new List<TgcMesh>();
             effectLuzComun = TgcShaders.Instance.TgcMeshPhongShader;
             effectLuzLava = effectLuzComun.Clone(effectLuzComun.Device);
+
             foreach (TgcMesh mesh in escenario.scene.Meshes)
             {
                 Microsoft.DirectX.Direct3D.Effect defaultEffect = mesh.Effect;
 
-                TgcMesh luz = escenario.getClosestLight(mesh.BoundingBox.calculateBoxCenter(), 2500f);
+                TgcMesh luz = escenario.obtenerFuenteLuzCercana(mesh.BoundingBox.calculateBoxCenter(), 2500f);
 
                 if (luz == null)
                 {
@@ -1013,7 +1456,8 @@ namespace TGC.Group.Modelo
                         {
                             if (mesh.Layer != "LAVA" && mesh.Layer != "FUEGO" && mesh.Layer != "HOGUERA")
                             {
-                                mesh.Effect = effectLuzComun;
+                                /*mesh.Effect = effectLuzComun;
+                                
                                 mesh.Technique = TgcShaders.Instance.getTgcMeshTechnique(mesh.RenderType);
                                 mesh.Effect.SetValue("lightPosition", TGCVector3.Vector3ToFloat4Array(luz.Position));
                                 mesh.Effect.SetValue("eyePosition", TGCVector3.Vector3ToFloat4Array(Camara.Position));
@@ -1022,7 +1466,7 @@ namespace TGC.Group.Modelo
                                 mesh.Effect.SetValue("ambientColor", ColorValue.FromColor(Color.FromArgb(50, 50, 50)));
                                 mesh.Effect.SetValue("diffuseColor", ColorValue.FromColor(Color.White));
                                 mesh.Effect.SetValue("specularColor", ColorValue.FromColor(Color.DimGray));
-                                mesh.Effect.SetValue("specularExp", 500f);
+                                mesh.Effect.SetValue("specularExp", 500f);*/
                             }
                         }
                         meshesConLuz.Add(mesh);
@@ -1030,54 +1474,92 @@ namespace TGC.Group.Modelo
                 }
                 //mesh.Technique = "RenderScene2";
             }
-            personajeLightShader = TgcShaders.Instance.TgcSkeletalMeshPointLightShader;
-            personaje.effect(personajeLightShader);
-            personaje.technique(TgcShaders.Instance.getTgcSkeletalMeshTechnique(personaje.renderType()));
+            //personajeLightShader = TgcShaders.Instance.TgcSkeletalMeshPointLightShader;
+           // personaje.effect(personajeLightShader);
+            //personaje.technique(TgcShaders.Instance.getTgcSkeletalMeshTechnique(personaje.renderType()));
         }
 
-        public void inicializarHUDS(Microsoft.DirectX.Direct3D.Device d3dDevice)
+        public void inicializarSprites(Microsoft.DirectX.Direct3D.Device d3dDevice)
         {
+
+            float dx = 10f;
+            float dy = 10f;
+           
+
             drawer2D = new Drawer2D();
             barraDeVida = new CustomSprite();
             barraDeVida.Bitmap = new CustomBitmap(directorio.BarraVida, d3dDevice);
-            barraDeVida.Position = new TGCVector2(10, 20);
+            barraDeVida.Position = new TGCVector2(dx, dy);
+            
 
             fruta = new CustomSprite();
             fruta.Bitmap = new CustomBitmap(directorio.Fruta, d3dDevice);
-            fruta.Position = new TGCVector2(20, 70);
+            fruta.Position = new TGCVector2(dx +20f, barraDeVida.Position.Y+ fruta.Bitmap.Height/2+ dy);
 
             textoFrutas = new TgcText2D();
             textoFrutas.Text = "0";
             textoFrutas.Color = Color.White;
             textoFrutas.Align = TgcText2D.TextAlign.LEFT;
-            textoFrutas.Position = new Point(100, 80);
+            textoFrutas.Position = new Point((int)(fruta.Position.X+fruta.Bitmap.Width + dx ), (int) (fruta.Position.Y + dy));
             textoFrutas.Size = new Size(350, 140);
             textoFrutas.changeFont(new System.Drawing.Font("TimesNewRoman", 30,FontStyle.Bold));
 
 
             mascara = new CustomSprite();
             mascara.Bitmap = new CustomBitmap(directorio.Mascara, d3dDevice);
-            mascara.Position = new TGCVector2(25, 150);
+            mascara.Position = new TGCVector2(dx + 35f, fruta.Position.Y + mascara.Bitmap.Height/2 +dy);
 
             textoMascaras = new TgcText2D();
             textoMascaras.Text = "0";
             textoMascaras.Color = Color.White;
             textoMascaras.Align = TgcText2D.TextAlign.LEFT;
-            textoMascaras.Position = new Point(100, 200);
+            textoMascaras.Position = new Point((int) (mascara.Position.X + mascara.Bitmap.Width + dx),(int)(mascara.Position.Y +mascara.Bitmap.Height/3+ dy));
             textoMascaras.Size = new Size(350, 140);
             textoMascaras.changeFont(new System.Drawing.Font("TimesNewRoman", 30, FontStyle.Bold));
 
             hoguera = new CustomSprite();
             hoguera.Bitmap = new CustomBitmap(directorio.Hoguera, d3dDevice);
-            hoguera.Position = new TGCVector2(22, 290);
+            hoguera.Position = new TGCVector2(dx + 30f, mascara.Position.Y+ hoguera.Bitmap.Height + dy);
 
             textoHoguera = new TgcText2D();
             textoHoguera.Text = "0";
             textoHoguera.Color = Color.White;
             textoHoguera.Align = TgcText2D.TextAlign.LEFT;
-            textoHoguera.Position = new Point(100, 330);
+            textoHoguera.Position = new Point((int)(hoguera.Position.X + hoguera.Bitmap.Width + dx), (int)(hoguera.Position.Y + hoguera.Bitmap.Height/3 + dy));
             textoHoguera.Size = new Size(350, 140);
             textoHoguera.changeFont(new System.Drawing.Font("TimesNewRoman", 30, FontStyle.Bold));
+
+            cajaSprite = new CustomSprite();
+            cajaSprite.Bitmap = new CustomBitmap(directorio.Caja, d3dDevice);
+            cajaSprite.Scaling = new TGCVector2(0.2f, 0.2f);
+            cajaSprite.Position = new TGCVector2(dx, hoguera.Position.Y + cajaSprite.Bitmap.Height/4 + dy);
+            
+            textoCajas = new TgcText2D();
+            textoCajas.Text = "0";
+            textoCajas.Color = Color.White;
+            textoCajas.Align = TgcText2D.TextAlign.LEFT;
+            textoCajas.Position = new Point((int)(cajaSprite.Position.X + cajaSprite.Bitmap.Width/4 + dx),(int)(cajaSprite.Position.Y + cajaSprite.Bitmap.Height/20 + dy));
+            textoCajas.Size = new Size(350, 140);
+            textoCajas.changeFont(new System.Drawing.Font("TimesNewRoman", 30, FontStyle.Bold));
+
+
+            textoFrutas.Position = new Point(textoCajas.Position.X,textoFrutas.Position.Y);
+            textoHoguera.Position = new Point(textoCajas.Position.X, textoHoguera.Position.Y);
+            textoMascaras.Position = new Point(textoCajas.Position.X, textoMascaras.Position.Y);
+
+            pauseSprite = new CustomSprite();
+            pauseSprite.Bitmap = new CustomBitmap(directorio.Paused, d3dDevice);
+            pauseSprite.Position = new TGCVector2(ScreenRes_X/2- pauseSprite.Bitmap.Size.Width/2, ScreenRes_Y/2 - pauseSprite.Bitmap.Size.Height/2);
+
+            soundOnSprite = new CustomSprite();
+            soundOnSprite.Bitmap = new CustomBitmap(directorio.SoundOn, d3dDevice);
+            soundOnSprite.Position = new TGCVector2(ScreenRes_X - soundOnSprite.Bitmap.Size.Width, 0f);
+            
+
+            soundOffSprite = new CustomSprite();
+            soundOffSprite.Bitmap = new CustomBitmap(directorio.SoundOff, d3dDevice);
+            soundOffSprite.Position = new TGCVector2(ScreenRes_X - soundOffSprite.Bitmap.Size.Width, 0f);
+            soundOffSprite.Scaling = new TGCVector2(1f, 1.1f);
 
             textoSonido = new TgcText2D();
             textoSonido.Text = "Sound: on";
@@ -1086,6 +1568,7 @@ namespace TGC.Group.Modelo
             textoSonido.Position = new Point(1400, 20);
             textoSonido.Size = new Size(200, 20);
             textoSonido.changeFont(new System.Drawing.Font("TimesNewRoman", 15, FontStyle.Bold));
+            
 
         }
 

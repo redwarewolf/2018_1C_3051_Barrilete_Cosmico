@@ -31,7 +31,7 @@ namespace TGC.Group.Modelo
         public List<Plataforma> plataformas { get; set; }
         public List<PlataformaRotante> plataformasRotantes { get; set; }
 
-        private float danioLava = 0.009f;
+        
 
         public Escenario(string pathEscenario,Personaje personaje)
         {
@@ -68,6 +68,7 @@ namespace TGC.Group.Modelo
         public List<TgcMesh> RampasMesh() => encontrarMeshes("RAMPA");
         public List<TgcMesh> FuegosMesh() => encontrarMeshes("FUEGO");
         public List<TgcMesh> HoguerasMesh() => encontrarMeshes("HOGUERA");
+        public List<TgcMesh> MetasMesh() => encontrarMeshes("META");
 
         public List<TgcMesh> MeshesParaEfectoLava()
         {
@@ -95,6 +96,37 @@ namespace TGC.Group.Modelo
 
             return meshesColisionables;
         }
+
+        public List<TgcMesh> MeshesLuminosos()
+        {
+            List<TgcMesh> meshesBloom = new List<TgcMesh>();
+            meshesBloom.AddRange(Luces());
+            meshesBloom.AddRange(FuegosMesh());
+            meshesBloom.AddRange(HoguerasMesh());
+            meshesBloom.AddRange(LavaMesh());
+            meshesBloom.AddRange(PisosResbalososMesh());
+            return meshesBloom;
+        }
+
+        public List<TgcMesh> MeshesOpacos()
+        {
+            List<TgcMesh> opacos = new List<TgcMesh>();
+            opacos.AddRange(ParedesMesh());
+            opacos.AddRange(RocasMesh());
+            //opacos.AddRange(PisosMesh());
+            opacos.AddRange(CajasMesh());
+            opacos.AddRange(SarcofagosMesh());
+            opacos.AddRange(PilaresMesh());
+            opacos.AddRange(PlataformasMesh());
+            //opacos.AddRange(PisosResbalososMesh());
+            opacos.AddRange(Frutas());
+            opacos.AddRange(Mascaras());
+            opacos.AddRange(Escalones());
+            opacos.AddRange(RampasMesh());
+
+            return opacos;
+        }
+
 
         public List<TgcBoundingAxisAlignBox> MeshesColisionablesBB()
         {
@@ -180,7 +212,10 @@ namespace TGC.Group.Modelo
             return this.pisosInercia.Find(piso => personaje.colisionaPorArribaDe(piso.pisoMesh));
         }
 
-        
+        public bool colisionaConMeta()
+        {
+            return this.MetasMesh().Exists(meta => personaje.colisionaConMesh(meta));
+        }
 
         
 
@@ -207,9 +242,10 @@ namespace TGC.Group.Modelo
             Juego.octree.modelos.Remove(mesh);
         }
 
-        public bool personajeSobreFruta()
+
+        public TgcMesh obtenerFrutaColisionada()
         {
-            return Frutas().Exists(fruta => personaje.colisionaConMesh(fruta));
+            return Frutas().Find(fruta => personaje.colisionaConMesh(fruta));
         }
 
         public void eliminarFrutaColisionada()
@@ -231,10 +267,7 @@ namespace TGC.Group.Modelo
             return RampasMesh().Exists(pisoDesnivelado => personaje.colisionConPisoDesnivelado(pisoDesnivelado));
         }
 
-        public void quemarPersonaje()
-        {
-            personaje.vida -= danioLava ;
-        }
+
         #endregion
 
         #region MeshToClassAdapters
@@ -410,7 +443,7 @@ namespace TGC.Group.Modelo
         }
 
 
-        public TgcMesh getClosestLight(TGCVector3 pos, float maxDistance)
+        public TgcMesh obtenerFuenteLuzCercana(TGCVector3 pos, float maxDistance)
         {
             var minDist = float.MaxValue;
             TgcMesh minLight = null;

@@ -28,6 +28,10 @@ namespace TGC.Group.Modelo
         public int frutas { get; set; } = 0;
         public int mascaras { get; set; } = 0;
         public int hogueras { get; set; } = 0;
+        public int cajas { get; set; } = 0;
+
+        public bool invencible { get; set; } = false;
+        public bool godMode { get; set; } = false;
 
         public bool moving { get; set; } = false;
         public bool jumping { get; set; } = false;
@@ -48,7 +52,7 @@ namespace TGC.Group.Modelo
         private float RADIO_ESFERA;
 
         public TGCVector3 POSICION_INICIAL_PERSONAJE { get; set; } = new TGCVector3(0f,0.1f,0f);
-        public TGCVector3 posicionDesarrollo = new TGCVector3(-3703f, 0.1f, -10507f);
+        public TGCVector3 posicionDesarrollo = new TGCVector3(-3870.264f, 1402.333f, -6263.998f);
         private TGCVector3 CHECKPOINT = new TGCVector3(0f, 0f, 0f);
 
         private DireccionPersonaje direccion = new DireccionPersonaje();
@@ -87,8 +91,8 @@ namespace TGC.Group.Modelo
             
 
             //Descomentar para ubicarlo donde se este desarrollando
-            //POSICION_INICIAL_PERSONAJE = posicionDesarrollo;
-
+           // POSICION_INICIAL_PERSONAJE = posicionDesarrollo;
+            
             inicializarPosicion();
             
         }
@@ -129,13 +133,24 @@ namespace TGC.Group.Modelo
             float anguloRotado = (personajeMesh.Rotation.Y + FastMath.ToRad(180f));
             personajeMesh.Transform =  TGCMatrix.Scaling(PERSONAJE_SCALE)
                                       *TGCMatrix.RotationY(anguloRotado)
-                                      *TGCMatrix.Translation(posicionActual)
-                                      *matrizTransformacionPlataformaRotante;
-            personajeMesh.BoundingBox.transform(TGCMatrix.Translation(posicionActual) * matrizTransformacionPlataformaRotante);
+                                      * TGCMatrix.Translation(posicionActual)
+                                      * matrizTransformacionPlataformaRotante
+                                      ;
+            personajeMesh.BoundingBox.transform(TGCMatrix.Translation(posicionActual)* matrizTransformacionPlataformaRotante );
             
         }
-        #region Colisiones
-        public bool colisionaConMesh(TgcMesh mesh) => TgcCollisionUtils.testSphereAABB(esferaPersonaje, mesh.BoundingBox);
+        public void renderizarEmisorParticulas(float ElapsedTime)
+        {
+            if (emisorParticulas != null)
+            {
+                emisorParticulas.Position = position();
+                emisorParticulas.Speed = new TGCVector3(65, 20, 15);
+                emisorParticulas.render(ElapsedTime);
+            }
+        }
+
+    #region Colisiones
+    public bool colisionaConMesh(TgcMesh mesh) => TgcCollisionUtils.testSphereAABB(esferaPersonaje, mesh.BoundingBox);
         public bool colisionaConCaja(Caja box)
         {
             TgcBoundingAxisAlignBox boundingBoxColision = boundingBox();
@@ -197,7 +212,7 @@ namespace TGC.Group.Modelo
             
         }
 
-        public bool rotar(TgcD3dInput Input,Key key)
+        public bool rotar(TgcD3dInput Input)
         {
             bool moving = false;
             //Adelante
@@ -273,13 +288,21 @@ namespace TGC.Group.Modelo
         #region Estado
         public bool vidaCompleta() => vida == vidaMaxima;
         public bool vivo() => vida > 0;
-        public void aumentarVida(float aumento)=>vida += aumento;
-       
+        public void aumentarVida(float aumento)
+        {
+            if (invencible || godMode) return;
+            vida += aumento;
+
+        }
+        public void comerFrutaPodrida() => aumentarVida(-0.1f);
+
         public void aumentarFrutas() => frutas++;
         
         public void aumentarMascaras() => mascaras++;
         
         public void aumentarHogueras() => hogueras++;
+
+        public void aumentarCajas() => cajas++;
         #endregion
     }
 }
