@@ -14,23 +14,20 @@ Proyecto plantilla para los trabajos prácticos de la asignatura electiva [Técn
 * [TGC.Core](https://www.nuget.org/packages/TGC.Core/) (se baja automáticamente al hacer build por primera vez)
 
 ## Integrantes ##
-TGC, Tgcito  |  Apellido, Nombre
------------- | -------------
-<img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/robotgc.png" height="500"> | <img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/trofeotp.png" height="500">
 
-Manuel Da Silva
+# Manuel Da Silva #
 
 <img src="https://puu.sh/AUmFF/91d5caa12d.png" height="500">
 
-Ignacio Casarino
+# Ignacio Casarino #
 
 <img src="https://puu.sh/AUmG8/b8dc6c6e41.png" height="500">
 
-Pedro Jara
+# Pedro Jara #
 
 <img src="https://puu.sh/AUmGy/3fd32fb9fb.png" height="500">
 
-Bruno Manchione
+# Bruno Manchione #
 
 <img src="https://puu.sh/AUmyW/f843fdfcfd.png" height="500">
 
@@ -50,3 +47,8 @@ Bruno Manchione
 ## Game Play ##
 
 [![Watch the video](https://img.youtube.com/vi/4XLB-rwQpK4/0.jpg)](https://www.youtube.com/watch?v=4XLB-rwQpK4)
+
+## Awards ##
+
+<img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/trofeotp.png" height="500">
+<img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/robotgc.png" height="500">
