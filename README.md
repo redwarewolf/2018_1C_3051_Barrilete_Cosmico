@@ -18,12 +18,35 @@ TGC, Tgcito  |  Apellido, Nombre
 ------------ | -------------
 <img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/robotgc.png" height="500"> | <img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/trofeotp.png" height="500">
 
+Manuel Da Silva
+
+<img src="https://puu.sh/AUmFF/91d5caa12d.png" height="500">
+
+Ignacio Casarino
+
+<img src="https://puu.sh/AUmG8/b8dc6c6e41.png" height="500">
+
+Pedro Jara
+
+<img src="https://puu.sh/AUmGy/3fd32fb9fb.png" height="500">
+
+Bruno Manchione
+
+<img src="https://puu.sh/AUmyW/f843fdfcfd.png" height="500">
+
 ## ScreenShot ##
-![screenshot1](https://github.com/tgc-utn/tgc-group/blob/master/TGC.Group/Media/cajaMadera4.jpg)
-![screenshot2](https://github.com/tgc-utn/tgc-group/blob/master/TGC.Group/Media/cajaMadera4.jpg)
-![screenshot3](https://github.com/tgc-utn/tgc-group/blob/master/TGC.Group/Media/cajaMadera4.jpg)
-![screenshot4](https://github.com/tgc-utn/tgc-group/blob/master/TGC.Group/Media/cajaMadera4.jpg)
-![screenshot5](https://github.com/tgc-utn/tgc-group/blob/master/TGC.Group/Media/cajaMadera4.jpg)
+
+<img src="https://puu.sh/ATJdG/99bf0eddf7.jpg" height="500">
+<img src="https://puu.sh/ATJcN/f46f465956.jpg" height="500">
+<img src="https://puu.sh/ATJcc/61742ccd66.jpg" height="500">
+<img src="https://puu.sh/ATJbm/8ebf80afb0.jpg" height="500">
+<img src="https://puu.sh/ATJ9W/af9b97d060.jpg" height="500">
+<img src="https://puu.sh/ATJ8L/0d775b6040.jpg" height="500">
+<img src="https://puu.sh/ATJ83/fa474897bd.jpg" height="500">
+<img src="https://puu.sh/ATJ7p/249ddf50e5.jpg" height="500">
+<img src="https://puu.sh/ATJ6f/8d08ae1fee.jpg" height="500">
+<img src="https://puu.sh/ATJ5d/92b704e1fe.jpg" height="500">
 
 ## Game Play ##
-[![Watch the video](https://img.youtube.com/vi/qESIu8ozanU/0.jpg)](https://www.youtube.com/playlist?list=PLRM4L32DjvnazuMl8wZlbpEYL5Qh63ulG)
+
+[![Watch the video](https://img.youtube.com/vi/4XLB-rwQpK4/0.jpg)](https://www.youtube.com/watch?v=4XLB-rwQpK4)
